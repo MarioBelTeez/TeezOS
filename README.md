@@ -18,6 +18,8 @@ Electron + React + TypeScript. Windows first, Linux from source.
 | **Server** *(optional)* | A Proxmox host: health, UPS (NUT), ZFS, storage, guests with power and backup, tasks |
 | **Automations** *(optional)* | Scheduled Claude Code jobs on an always-on server via `runner/` |
 
+**New here? Start with the [getting-started guide](docs/getting-started.md)**: install, connecting Claude, your first project, the Brain and the Feed, plus an optional homelab part.
+
 ## Requirements
 
 - Windows 10/11 (or Linux, built from source)
