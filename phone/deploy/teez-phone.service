@@ -1,0 +1,64 @@
+[Unit]
+Description=teez-phone — the TeezOS phone companion (tailnet only, via tailscale serve)
+After=network-online.target teez-runner.service
+Wants=network-online.target
+
+[Service]
+# The service account alone reads /etc/teez-phone (Feed keys, VAPID, the
+# Proxmox auditor token, the runner phone token, the Claude token). Chats run
+# as the separate `phoneagent` account (sudoers: teezphone may run commands as
+# phoneagent only), which reads the vault clone through the `teezvault` group
+# and nothing else of teezphone's.
+User=teezphone
+Group=teezphone
+WorkingDirectory=/opt/teez-phone
+ExecStart=/usr/bin/node /opt/teez-phone/server.mjs
+Environment=TZ=Europe/Rome
+Environment=NODE_ENV=production
+# A unix socket, not a TCP port: a loopback port is open to every account in
+# the container (the runner's agent runs web-reading jobs) and, with
+# tailscaled in userspace-networking mode, possibly to tailnet peers through
+# its netstack. Only teezphone and root (tailscaled, for `tailscale serve
+# unix:...`) can open the socket: /run/teez-phone is 0750 teezphone, the
+# socket 0600. The service removes a stale socket before it listens.
+Environment=TEEZ_PHONE_SOCKET=/run/teez-phone/phone.sock
+RuntimeDirectory=teez-phone
+RuntimeDirectoryMode=0750
+# Set this to YOUR Tailscale login, e.g. yourname@github. The service refuses to start without it.
+Environment=TEEZ_PHONE_LOGIN=CHANGE_ME@github
+# The https URL of this service on your tailnet (identifies it to push services).
+Environment=TEEZ_PHONE_PUBLIC_URL=https://teez-phone.your-tailnet.ts.net
+# Chats, captures, push subscriptions: a 700 folder apart from the vault clone,
+# which phoneagent reads through the group.
+Environment=TEEZ_PHONE_DATA=/var/lib/teez-phone/data
+Environment=TEEZ_PHONE_VAULT=/var/lib/teez-phone/vault
+Environment=TEEZ_PHONE_AGENT_VAULT=/var/lib/teez-phone/vault
+Environment=TEEZ_PHONE_APP=/opt/teez-phone/app
+Environment=TEEZ_PHONE_SECRETS=/etc/teez-phone
+Environment=TEEZ_PHONE_JOB_USER=phoneagent
+Environment=TEEZ_PHONE_RUNNER=https://127.0.0.1:7420
+# A copy of /etc/teez-runner/tls.crt (that folder is runner-only); also the default.
+Environment=TEEZ_PHONE_RUNNER_CERT=/etc/teez-phone/runner.crt
+# Empty: agy and claude are found through phoneagent's login shell.
+Environment=TEEZ_PHONE_AGY=
+Environment=TEEZ_PHONE_CLAUDE=
+Environment=TEEZ_PHONE_WATCH=/opt/teez-phone/watch/watch.py
+ExecStartPre=/usr/bin/node /opt/teez-phone/server.mjs --check-config
+Restart=on-failure
+RestartSec=5
+# NoNewPrivileges is off on purpose: switching to the chat account goes through
+# sudo, which is setuid. Everything else is fenced.
+ProtectSystem=full
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+LockPersonality=true
+# Files the service creates are its own; the vault clone stays readable for
+# phoneagent because its folders carry default ACLs granting the teezvault
+# group read (set by ct-install.sh; with a default ACL the umask is not applied).
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

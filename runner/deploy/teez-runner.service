@@ -1,0 +1,41 @@
+[Unit]
+Description=teez-runner — scheduled Claude Code jobs for TeezAI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# The service account alone reads the API token, the TLS key and the Claude
+# token. Jobs run as the separate `agent` account (sudoers: runner may run
+# commands as agent only), so a job can never read what would let it give
+# itself more power.
+User=runner
+Group=runner
+WorkingDirectory=/opt/teez-runner
+ExecStart=/usr/bin/node /opt/teez-runner/src/main.ts
+Environment=TZ=Europe/Rome
+Environment=NODE_ENV=production
+Environment=TEEZ_RUNNER_DATA=/var/lib/teez-runner
+Environment=TEEZ_RUNNER_WORK=/home/agent/work
+Environment=TEEZ_RUNNER_PORT=7420
+Environment=TEEZ_RUNNER_BIND=0.0.0.0
+Environment=TEEZ_RUNNER_TOKEN_FILE=/etc/teez-runner/token
+Environment=TEEZ_RUNNER_PHONE_TOKEN_FILE=/etc/teez-runner/phone-token
+Environment=TEEZ_RUNNER_TLS_CERT=/etc/teez-runner/tls.crt
+Environment=TEEZ_RUNNER_TLS_KEY=/etc/teez-runner/tls.key
+Environment=TEEZ_RUNNER_JOB_USER=agent
+Environment=TEEZ_RUNNER_CLAUDE=/home/agent/.local/bin/claude
+Restart=on-failure
+RestartSec=5
+# NoNewPrivileges is off on purpose: switching to the job account goes through
+# sudo, which is setuid. Everything else is fenced.
+ProtectSystem=full
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+LockPersonality=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

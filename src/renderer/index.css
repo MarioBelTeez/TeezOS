@@ -1,0 +1,528 @@
+@import "tailwindcss";
+
+/*
+ * BelTeez's three faces, bundled rather than fetched: a desktop app has to
+ * look right offline, and the page's own CSP allows fonts from 'self' only.
+ * Latin subsets, and only the weights the interface actually uses — each
+ * woff2 is 16-24KB and every one of them ships in the installer.
+ */
+@import "@fontsource/bebas-neue/latin-400.css";
+@import "@fontsource/barlow-condensed/latin-400.css";
+@import "@fontsource/barlow-condensed/latin-600.css";
+@import "@fontsource/barlow-condensed/latin-700.css";
+@import "@fontsource/dm-mono/latin-400.css";
+@import "@fontsource/dm-mono/latin-500.css";
+
+/*
+ * BelTeez Studio's tokens, copied from the site so the two read as one brand.
+ * Fonts are bundled rather than fetched, because a desktop app must look right
+ * offline. They are added in a later step; the stacks below name the fallback.
+ */
+@theme {
+	--color-red: #e8002d;
+	--color-red-hot: #ff1744;
+	--color-bg: #050307;
+	--color-surface: #0e0a0d;
+	--color-surface-2: #161015;
+	/* Muted text stays at 5:1 or better on every surface (it was 3:1). */
+	--color-muted: #958289;
+	--color-border: #2a1f24;
+	--color-text: #f5f0f2;
+	--color-glow: rgb(232 0 45 / 0.42);
+	--color-glass: rgb(14 10 13 / 0.72);
+	--color-violet: #7c6cff;
+	/* Warnings short of an error: a usage bar past 75 %, a limit nearing. */
+	--color-amber: #f5a524;
+
+	--font-display: "Bebas Neue", "Arial Narrow", sans-serif;
+	--font-condensed: "Barlow Condensed", "Arial Narrow", sans-serif;
+	--font-mono: "DM Mono", ui-monospace, "Cascadia Mono", monospace;
+
+	--radius-cut: 16px;
+}
+
+html,
+body,
+#root {
+	height: 100%;
+	/* The shell itself never scrolls — panels scroll inside it. Without this,
+	   any overflowing child lets the document scroll and the title bar rides
+	   out of view. */
+	overflow: hidden;
+}
+
+body {
+	margin: 0;
+	/* A faint red light from the top right, behind the whole desk. */
+	background:
+		radial-gradient(1200px 600px at 70% -10%, rgb(232 0 45 / 0.16), transparent 60%),
+		radial-gradient(900px 500px at 0% 110%, rgb(232 0 45 / 0.10), transparent 60%),
+		var(--color-bg);
+	color: #f5f0f2;
+	font-family: var(--font-condensed);
+}
+
+/* ---------- vivid: glow, glass, motion ---------- */
+/* @utility rather than a plain class, so variants work: focus:glow, focus-within:glow. */
+@utility glass {
+	background: var(--color-glass);
+	backdrop-filter: blur(12px) saturate(1.2);
+	box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+@utility glow {
+	box-shadow: 0 0 0 1px rgb(232 0 45 / 0.6), 0 0 18px var(--color-glow);
+}
+@utility glow-text {
+	text-shadow: 0 0 12px var(--color-glow);
+}
+/* glow-text for icons: SVG strokes ignore text-shadow. */
+@utility glow-icon {
+	filter: drop-shadow(0 0 6px var(--color-glow));
+}
+/* The picked tab: a red-to-hot underline that lights the bar under it. */
+.tab-active {
+	position: relative;
+	/* The picked tab is lit from below by its underline. */
+	background-image: linear-gradient(to top, rgb(232 0 45 / 0.16), transparent 80%);
+}
+.tab-active::after {
+	content: "";
+	position: absolute;
+	left: 8px;
+	right: 8px;
+	bottom: 0;
+	height: 2px;
+	background: linear-gradient(90deg, var(--color-red), var(--color-red-hot));
+	box-shadow: 0 0 10px var(--color-glow);
+}
+.btn-hot {
+	background: linear-gradient(135deg, var(--color-red), var(--color-red-hot));
+	box-shadow: 0 4px 18px var(--color-glow);
+}
+.btn-hot:hover {
+	filter: brightness(1.12);
+}
+/* Something is working: a chat, a run, an agent. */
+.pulse-dot {
+	animation: pulse-dot 1.4s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.45;
+		transform: scale(0.8);
+	}
+}
+/* The Agents view's connectors: still when finished, a flowing dashed line into what runs. */
+.agent-edge {
+	stroke: var(--color-border);
+	stroke-width: 1.5;
+}
+.agent-edge-running {
+	stroke: var(--color-red);
+	stroke-dasharray: 4 4;
+	animation: agent-flow 0.8s linear infinite;
+}
+@keyframes agent-flow {
+	to {
+		stroke-dashoffset: -8;
+	}
+}
+/* The reply being written ends in a glowing caret: after its last block, or on its own while it is still empty. */
+.stream-caret::after,
+.stream-caret > .prose-teez > :last-child::after {
+	content: "";
+	display: inline-block;
+	width: 0.5em;
+	height: 1em;
+	margin-left: 2px;
+	vertical-align: -0.15em;
+	background: var(--color-red-hot);
+	box-shadow: 0 0 8px var(--color-glow);
+	animation: caret 1s steps(2) infinite;
+}
+.stream-caret:has(> .prose-teez > :last-child)::after {
+	content: none;
+}
+@keyframes caret {
+	50% {
+		opacity: 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation: none !important;
+		transition: none !important;
+	}
+}
+
+/*
+ * The chat's text scale (Settings → Chat, or Ctrl+= / Ctrl+- / Ctrl+0 in the
+ * chat). The panel root carries data-chat-size; every card reads these
+ * variables, so one attribute resizes the whole conversation. The :root
+ * values (= medium) cover cards drawn outside a chat panel, e.g. Automations.
+ */
+/* The conversation and its composer stop growing here, so a 2560 px window reads like a page, not a banner. */
+:root {
+	--chat-column: 1180px;
+}
+
+:root,
+[data-chat-size="m"] { --chat-text: 15px; --chat-code: 13px; --chat-tool: 12px; --chat-meta: 11px; }
+[data-chat-size="s"] { --chat-text: 13.5px; --chat-code: 11.5px; --chat-tool: 11px; --chat-meta: 10.5px; }
+[data-chat-size="l"] { --chat-text: 17px; --chat-code: 14.5px; --chat-tool: 13px; --chat-meta: 12px; }
+
+/* Replies are markdown: in a chat they follow the scale too. */
+[data-chat-size] .prose-teez {
+	font-size: var(--chat-text);
+}
+[data-chat-size] .prose-teez pre code {
+	font-size: var(--chat-code);
+}
+
+/* The cut corner that runs through the BelTeez cards. */
+.cut-corner {
+	clip-path: polygon(
+		var(--radius-cut) 0,
+		100% 0,
+		100% calc(100% - var(--radius-cut)),
+		calc(100% - var(--radius-cut)) 100%,
+		0 100%,
+		0 var(--radius-cut)
+	);
+}
+
+/* Only the title bar is draggable; controls opt out. */
+.drag-region {
+	-webkit-app-region: drag;
+}
+
+.no-drag {
+	-webkit-app-region: no-drag;
+}
+
+/* Thin dark scrollbars everywhere, red while dragging. */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: #2a1f24 transparent;
+}
+::selection {
+	background: #e8002d55;
+}
+
+/*
+ * Markdown, as the agents write it: replies in the chat and notes in Brain.
+ * Tight spacing, BelTeez headings, DM Mono for code.
+ */
+.prose-teez {
+	font-family: var(--font-condensed);
+	font-size: 14.5px;
+	line-height: 1.55;
+	color: var(--color-text);
+	overflow-wrap: anywhere;
+}
+.prose-teez > :first-child {
+	margin-top: 0;
+}
+.prose-teez > :last-child {
+	margin-bottom: 0;
+}
+.prose-teez p,
+.prose-teez ul,
+.prose-teez ol,
+.prose-teez pre,
+.prose-teez table,
+.prose-teez blockquote {
+	margin: 0.55em 0;
+}
+.prose-teez h1,
+.prose-teez h2,
+.prose-teez h3,
+.prose-teez h4 {
+	font-family: var(--font-display);
+	letter-spacing: 0.04em;
+	line-height: 1.1;
+	margin: 0.9em 0 0.35em;
+}
+.prose-teez h1 {
+	font-size: 2em;
+}
+.prose-teez h2 {
+	font-size: 1.55em;
+}
+.prose-teez h3 {
+	font-size: 1.25em;
+	color: #ffd0d8;
+}
+.prose-teez h4 {
+	font-size: 1.1em;
+}
+.prose-teez ul {
+	list-style: none;
+	padding-left: 1.1em;
+}
+.prose-teez ul > li {
+	position: relative;
+}
+.prose-teez ul > li::before {
+	content: "";
+	position: absolute;
+	left: -0.85em;
+	top: 0.62em;
+	width: 0.42em;
+	height: 0.42em;
+	background: var(--color-red);
+	clip-path: polygon(30% 0, 100% 0, 70% 100%, 0 100%);
+}
+.prose-teez ol {
+	list-style: decimal;
+	padding-left: 1.4em;
+}
+.prose-teez li + li {
+	margin-top: 0.15em;
+}
+.prose-teez a {
+	color: #ff6b84;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+.prose-teez strong {
+	color: #fff;
+	font-weight: 700;
+}
+.prose-teez code {
+	font-family: var(--font-mono);
+	font-size: 0.82em;
+	background: #1c1418;
+	padding: 0.1em 0.35em;
+	border: 1px solid #2a1f24;
+}
+.prose-teez pre {
+	background: #110c0f;
+	border: 1px solid #2a1f24;
+	padding: 0.7em 0.9em;
+	overflow-x: auto;
+}
+.prose-teez pre code {
+	background: none;
+	border: 0;
+	padding: 0;
+	font-size: 12px;
+	line-height: 1.55;
+}
+.prose-teez blockquote {
+	border-left: 3px solid var(--color-red);
+	padding: 0.1em 0 0.1em 0.8em;
+	color: #d8cdd2;
+}
+.prose-teez table {
+	border-collapse: collapse;
+	font-size: 0.92em;
+	display: block;
+	overflow-x: auto;
+}
+.prose-teez th,
+.prose-teez td {
+	border: 1px solid #2a1f24;
+	padding: 0.3em 0.6em;
+	text-align: left;
+	/* "anywhere" (above) lets a cell shrink below a word: "Termin|al". Here a
+	   word breaks only if it cannot fit, and a wide table scrolls instead. */
+	overflow-wrap: break-word;
+}
+.prose-teez th {
+	background: #110c0f;
+	font-weight: 700;
+}
+.prose-teez hr {
+	border: 0;
+	border-top: 1px solid #2a1f24;
+	margin: 1em 0;
+}
+.prose-teez input[type="checkbox"] {
+	accent-color: var(--color-red);
+	margin-right: 0.4em;
+}
+
+/* xterm's own scrollbar matches the rest. */
+.xterm .xterm-viewport {
+	scrollbar-width: thin;
+	scrollbar-color: #2a1f24 transparent;
+}
+
+/* ---------- Brain: notes as Obsidian draws them, in BelTeez colours ---------- */
+.prose-note {
+	font-size: 15.5px;
+	line-height: 1.65;
+}
+.prose-teez a.wikilink {
+	color: #ff8fa3;
+	text-decoration: none;
+	border-bottom: 1px dashed #e8002d88;
+	cursor: pointer;
+}
+.prose-teez a.wikilink:hover {
+	color: #fff;
+	border-bottom-color: #e8002d;
+}
+.prose-teez a.wikilink.unresolved {
+	color: #9c8a92;
+	border-bottom-color: #6b5b62;
+}
+.prose-teez a.wikilink.embed {
+	font-family: var(--font-mono);
+	font-size: 0.85em;
+}
+.prose-teez mark {
+	background: #f5a52440;
+	color: #fff;
+	padding: 0 0.15em;
+}
+.prose-teez .callout {
+	margin: 0.9em 0;
+	padding: 0.65em 0.9em;
+	background: #110c0f;
+	border-left: 3px solid var(--callout, #75beff);
+	clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+}
+.prose-teez .callout > :last-child {
+	margin-bottom: 0;
+}
+.prose-teez .callout-title {
+	font-family: var(--font-condensed);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	font-size: 0.8em;
+	color: var(--callout, #75beff);
+	margin-bottom: 0.35em;
+}
+.prose-teez .callout-info,
+.prose-teez .callout-note,
+.prose-teez .callout-abstract {
+	--callout: #75beff;
+}
+.prose-teez .callout-tip,
+.prose-teez .callout-success,
+.prose-teez .callout-check,
+.prose-teez .callout-done {
+	--callout: #73c991;
+}
+.prose-teez .callout-warning,
+.prose-teez .callout-caution,
+.prose-teez .callout-attention,
+.prose-teez .callout-todo {
+	--callout: #f5a524;
+}
+.prose-teez .callout-danger,
+.prose-teez .callout-error,
+.prose-teez .callout-bug,
+.prose-teez .callout-failure {
+	--callout: #ff3b5c;
+}
+.prose-teez .callout-quote,
+.prose-teez .callout-example,
+.prose-teez .callout-question {
+	--callout: #c586c0;
+}
+
+/* Form fields (job editor, settings). */
+.input {
+	display: block;
+	width: 100%;
+	background: var(--color-surface);
+	color: var(--color-text);
+	padding: 0.4rem 0.6rem;
+	font-size: 13px;
+	outline: none;
+	box-shadow: inset 0 0 0 1px var(--color-border);
+}
+.input:focus {
+	box-shadow: 0 0 0 1px rgb(232 0 45 / 0.6), 0 0 18px var(--color-glow);
+}
+textarea.input {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	line-height: 1.6;
+}
+
+/* ---------- the desk (dockview) in TeezOS's colours ---------- */
+/* The class twice outranks dockview's own theme block, wherever a floating group is mounted. */
+.dockview-theme-dark.dockview-theme-dark {
+	/* Groups are see-through, so the red light on the body reaches the panels; headers sit darker above them. */
+	--dv-group-view-background-color: transparent;
+	--dv-tabs-and-actions-container-background-color: rgb(0 0 0 / 0.45);
+	--dv-tabs-and-actions-container-height: 32px;
+	--dv-tabs-and-actions-container-font-size: 12px;
+	--dv-activegroup-visiblepanel-tab-background-color: var(--color-surface-2);
+	--dv-activegroup-hiddenpanel-tab-background-color: transparent;
+	--dv-inactivegroup-visiblepanel-tab-background-color: var(--color-surface);
+	--dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
+	--dv-activegroup-visiblepanel-tab-color: var(--color-text);
+	--dv-activegroup-hiddenpanel-tab-color: var(--color-muted);
+	--dv-inactivegroup-visiblepanel-tab-color: #b3a4ab;
+	--dv-inactivegroup-hiddenpanel-tab-color: var(--color-muted);
+	--dv-tab-divider-color: var(--color-border);
+	--dv-separator-border: var(--color-border);
+	--dv-paneview-header-border-color: var(--color-border);
+	--dv-drag-over-background-color: rgb(232 0 45 / 0.16);
+	--dv-drag-over-border-color: var(--color-red);
+	--dv-drag-over-border: 1px solid var(--color-red);
+	--dv-edge-dock-indicator-color: var(--color-red);
+	--dv-active-sash-color: var(--color-red);
+	--dv-icon-hover-background-color: rgb(255 255 255 / 0.06);
+	--dv-floating-border: 1px solid var(--color-border);
+	--dv-floating-titlebar-background-color: var(--color-surface);
+	--dv-context-menu-background-color: var(--color-surface-2);
+	--dv-context-menu-color: var(--color-text);
+	--dv-tabs-container-scrollbar-color: var(--color-border);
+	color-scheme: dark;
+}
+.dv-tab:has(.teez-tab) {
+	padding: 0;
+}
+/* The picked tab of each group carries the glowing underline (.tab-active); full strength in the group you are in. */
+.teez-tab {
+	position: relative;
+}
+.dv-tab.dv-active-tab .teez-tab::after {
+	content: "";
+	position: absolute;
+	left: 8px;
+	right: 8px;
+	bottom: 0;
+	height: 2px;
+	background: linear-gradient(90deg, var(--color-red), var(--color-red-hot));
+	opacity: 0.35;
+}
+.dv-groupview.dv-active-group .dv-tab.dv-active-tab .teez-tab::after {
+	opacity: 1;
+	box-shadow: 0 0 10px var(--color-glow);
+}
+.dv-groupview.dv-active-group .dv-tab.dv-active-tab .teez-tab {
+	background-image: linear-gradient(to top, rgb(232 0 45 / 0.16), transparent 80%);
+}
+.dv-groupview.dv-active-group .dv-tab.dv-active-tab .teez-tab svg {
+	color: var(--color-red-hot);
+	filter: drop-shadow(0 0 6px var(--color-glow));
+}
+/* A floating group is glass over the desk. */
+.dv-resize-container {
+	background: var(--color-glass);
+	backdrop-filter: blur(12px) saturate(1.2);
+	box-shadow: 0 0 0 1px rgb(232 0 45 / 0.25), 0 18px 48px rgb(0 0 0 / 0.6);
+}
+/* Tabs behind the picked one are just their icon (the name is in the tooltip), so a narrow group still fits them all. */
+.dv-tab.dv-inactive-tab .teez-tab-label,
+.dv-tab.dv-inactive-tab .teez-tab-close {
+	display: none;
+}
+.dv-tab.dv-inactive-tab .teez-tab {
+	padding-right: 10px;
+}

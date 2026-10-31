@@ -1,0 +1,112 @@
+{
+  "name": "teezai",
+  "version": "0.3.13",
+  "private": true,
+  "description": "Desktop app where Claude Code runs: folder workspaces, chat with approvals, built-in terminal.",
+  "type": "module",
+  "main": "out/main/index.js",
+  "scripts": {
+    "postinstall": "node scripts/ensure-electron.mjs",
+    "dev": "electron-vite dev",
+    "build": "npm run typecheck && electron-vite build",
+    "preview": "electron-vite preview",
+    "package": "npm run build && electron-builder --win",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "build:phone-app": "vite build --config phone/app/vite.config.ts",
+    "release": "npm run build && node scripts/release.mjs",
+    "build:phone": "node scripts/build-phone.mjs"
+  },
+  "build": {
+    "appId": "studio.belteez.teezai",
+    "productName": "TeezOS",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/node-pty/**/*",
+      "node_modules/@anthropic-ai/claude-agent-sdk/**/*"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "TeezOS"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Development",
+      "target": [
+        "AppImage"
+      ]
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "MarioBelTeez",
+      "repo": "TeezAI",
+      "private": true,
+      "releaseType": "draft"
+    },
+    "npmRebuild": false
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.273",
+    "dockview": "8.3.1",
+    "dockview-core": "8.3.1",
+    "dockview-react": "8.3.1",
+    "electron-updater": "^6.8.9",
+    "node-pty": "1.1.0"
+  },
+  "devDependencies": {
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@fontsource/bebas-neue": "^5.3.0",
+    "@fontsource/dm-mono": "^5.3.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/d3-force": "3.0.10",
+    "@types/node": "24.10.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/web-push": "^3.6.4",
+    "@vitejs/plugin-react": "5.2.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "d3-force": "3.0.0",
+    "electron": "44.4.1",
+    "electron-builder": "26.15.3",
+    "electron-vite": "5.0.0",
+    "esbuild": "0.25.12",
+    "framer-motion": "13.3.0",
+    "lucide-react": "1.54.0",
+    "monaco-editor": "0.57.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1",
+    "tailwindcss": "4.3.3",
+    "typescript": "7.0.2",
+    "vite": "7.3.6",
+    "vitest": "5.0.1",
+    "web-push": "^3.6.7",
+    "yaml": "2.9.1",
+    "zustand": "5.0.15"
+  }
+}

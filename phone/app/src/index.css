@@ -1,0 +1,333 @@
+@import "tailwindcss";
+
+/*
+ * TeezOS on the phone: the desktop's faces and tokens (src/renderer/index.css),
+ * copied rather than imported because that file also carries dockview, xterm
+ * and the desk's layout rules. Fonts are bundled: the server's CSP allows
+ * nothing but 'self', so no font CDN and no inline styles.
+ */
+@import "@fontsource/bebas-neue/latin-400.css";
+@import "@fontsource/barlow-condensed/latin-400.css";
+@import "@fontsource/barlow-condensed/latin-600.css";
+@import "@fontsource/barlow-condensed/latin-700.css";
+@import "@fontsource/dm-mono/latin-400.css";
+@import "@fontsource/dm-mono/latin-500.css";
+
+@theme {
+	--color-red: #e8002d;
+	--color-red-hot: #ff1744;
+	--color-bg: #050307;
+	--color-surface: #0e0a0d;
+	--color-surface-2: #161015;
+	--color-muted: #958289;
+	--color-border: #2a1f24;
+	--color-text: #f5f0f2;
+	--color-glow: rgb(232 0 45 / 0.42);
+	--color-glass: rgb(14 10 13 / 0.72);
+	--color-violet: #7c6cff;
+	--color-amber: #f5a524;
+	--color-ok: #3ddc84;
+
+	--font-display: "Bebas Neue", "Arial Narrow", sans-serif;
+	--font-condensed: "Barlow Condensed", "Arial Narrow", sans-serif;
+	--font-mono: "DM Mono", ui-monospace, monospace;
+
+	--radius-cut: 14px;
+}
+
+html,
+body,
+#root {
+	height: 100%;
+	overflow: hidden;
+	overscroll-behavior: none;
+}
+
+body {
+	margin: 0;
+	background:
+		radial-gradient(700px 420px at 80% -10%, rgb(232 0 45 / 0.16), transparent 60%),
+		radial-gradient(600px 400px at 0% 110%, rgb(232 0 45 / 0.1), transparent 60%),
+		var(--color-bg);
+	color: var(--color-text);
+	font-family: var(--font-condensed);
+	font-size: 17px;
+	-webkit-tap-highlight-color: transparent;
+	-webkit-text-size-adjust: 100%;
+}
+
+/* The shell follows the visible viewport, so the composer rides above the iOS keyboard (App.tsx sets --app-height). */
+.app-shell {
+	height: var(--app-height, 100dvh);
+}
+.safe-top {
+	padding-top: max(env(safe-area-inset-top), 8px);
+}
+.safe-bottom {
+	padding-bottom: env(safe-area-inset-bottom);
+}
+.safe-x {
+	padding-left: max(env(safe-area-inset-left), 14px);
+	padding-right: max(env(safe-area-inset-right), 14px);
+}
+/* With the keyboard up there is no room for the tab bar, and no need for the home-indicator inset. */
+.keyboard-open .tab-bar,
+.keyboard-open .push-banner {
+	display: none;
+}
+.keyboard-open .composer-dock {
+	padding-bottom: 6px;
+}
+
+@utility glass {
+	background: var(--color-glass);
+	backdrop-filter: blur(14px) saturate(1.2);
+	-webkit-backdrop-filter: blur(14px) saturate(1.2);
+}
+@utility glow {
+	box-shadow: 0 0 0 1px rgb(232 0 45 / 0.6), 0 0 18px var(--color-glow);
+}
+@utility glow-text {
+	text-shadow: 0 0 12px var(--color-glow);
+}
+
+.btn-hot {
+	background: linear-gradient(135deg, var(--color-red), var(--color-red-hot));
+	box-shadow: 0 4px 18px var(--color-glow);
+	color: #fff;
+}
+.btn-hot:active {
+	filter: brightness(1.15);
+}
+.btn-hot:disabled {
+	filter: grayscale(0.7) brightness(0.6);
+	box-shadow: none;
+}
+
+.cut-corner {
+	clip-path: polygon(var(--radius-cut) 0, 100% 0, 100% calc(100% - var(--radius-cut)), calc(100% - var(--radius-cut)) 100%, 0 100%, 0 var(--radius-cut));
+}
+
+/* 16px or more: iOS zooms the page into any smaller field. */
+.input {
+	display: block;
+	width: 100%;
+	background: var(--color-surface);
+	color: var(--color-text);
+	padding: 0.6rem 0.75rem;
+	font-size: 17px;
+	font-family: var(--font-condensed);
+	outline: none;
+	border-radius: 0;
+	box-shadow: inset 0 0 0 1px var(--color-border);
+	-webkit-appearance: none;
+	appearance: none;
+}
+.input:focus {
+	box-shadow: 0 0 0 1px rgb(232 0 45 / 0.6), 0 0 18px var(--color-glow);
+}
+select.input {
+	padding-right: 1.6rem;
+}
+
+.tab-active {
+	color: var(--color-text);
+	background-image: linear-gradient(to top, rgb(232 0 45 / 0.18), transparent 85%);
+	box-shadow: inset 0 2px 0 var(--color-red-hot);
+}
+
+.pulse-dot {
+	animation: pulse-dot 1.4s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.45;
+		transform: scale(0.8);
+	}
+}
+.stream-caret::after {
+	content: "";
+	display: inline-block;
+	width: 0.5em;
+	height: 1em;
+	margin-left: 2px;
+	vertical-align: -0.15em;
+	background: var(--color-red-hot);
+	box-shadow: 0 0 8px var(--color-glow);
+	animation: caret 1s steps(2) infinite;
+}
+@keyframes caret {
+	50% {
+		opacity: 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation: none !important;
+		transition: none !important;
+	}
+}
+
+/* A usage bar without inline widths: <progress> takes its value as an attribute. */
+progress.meter {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 100%;
+	height: 6px;
+	border: 0;
+	background: var(--color-surface-2);
+}
+progress.meter::-webkit-progress-bar {
+	background: var(--color-surface-2);
+}
+progress.meter::-webkit-progress-value {
+	background: linear-gradient(90deg, var(--color-red), var(--color-red-hot));
+}
+progress.meter::-moz-progress-bar {
+	background: linear-gradient(90deg, var(--color-red), var(--color-red-hot));
+}
+progress.meter.warn::-webkit-progress-value {
+	background: var(--color-amber);
+}
+progress.meter.warn::-moz-progress-bar {
+	background: var(--color-amber);
+}
+
+.scroll-y {
+	overflow-y: auto;
+	-webkit-overflow-scrolling: touch;
+	overscroll-behavior: contain;
+}
+
+/* Replies are markdown (the desktop's prose, sized for a phone). */
+.prose-teez {
+	font-family: var(--font-condensed);
+	font-size: 17px;
+	line-height: 1.5;
+	color: var(--color-text);
+	overflow-wrap: anywhere;
+}
+.prose-teez > :first-child {
+	margin-top: 0;
+}
+.prose-teez > :last-child {
+	margin-bottom: 0;
+}
+.prose-teez p,
+.prose-teez ul,
+.prose-teez ol,
+.prose-teez pre,
+.prose-teez table,
+.prose-teez blockquote {
+	margin: 0.55em 0;
+}
+.prose-teez h1,
+.prose-teez h2,
+.prose-teez h3,
+.prose-teez h4 {
+	font-family: var(--font-display);
+	letter-spacing: 0.04em;
+	line-height: 1.1;
+	margin: 0.9em 0 0.35em;
+}
+.prose-teez h1 {
+	font-size: 1.8em;
+}
+.prose-teez h2 {
+	font-size: 1.45em;
+}
+.prose-teez h3 {
+	font-size: 1.2em;
+	color: #ffd0d8;
+}
+.prose-teez ul {
+	list-style: none;
+	padding-left: 1.1em;
+}
+.prose-teez ul > li {
+	position: relative;
+}
+.prose-teez ul > li::before {
+	content: "";
+	position: absolute;
+	left: -0.85em;
+	top: 0.6em;
+	width: 0.42em;
+	height: 0.42em;
+	background: var(--color-red);
+	clip-path: polygon(30% 0, 100% 0, 70% 100%, 0 100%);
+}
+.prose-teez ol {
+	list-style: decimal;
+	padding-left: 1.4em;
+}
+.prose-teez li + li {
+	margin-top: 0.15em;
+}
+.prose-teez a {
+	color: #ff6b84;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+.prose-teez strong {
+	color: #fff;
+	font-weight: 700;
+}
+.prose-teez code {
+	font-family: var(--font-mono);
+	font-size: 0.8em;
+	background: #1c1418;
+	padding: 0.1em 0.35em;
+	border: 1px solid #2a1f24;
+}
+.prose-teez pre {
+	background: #110c0f;
+	border: 1px solid #2a1f24;
+	padding: 0.7em 0.9em;
+	overflow-x: auto;
+}
+.prose-teez pre code {
+	background: none;
+	border: 0;
+	padding: 0;
+	font-size: 13px;
+	line-height: 1.55;
+}
+.prose-teez blockquote {
+	border-left: 3px solid var(--color-red);
+	padding: 0.1em 0 0.1em 0.8em;
+	color: #d8cdd2;
+}
+.prose-teez table {
+	border-collapse: collapse;
+	font-size: 0.92em;
+	display: block;
+	overflow-x: auto;
+}
+.prose-teez th,
+.prose-teez td {
+	border: 1px solid #2a1f24;
+	padding: 0.3em 0.6em;
+	text-align: left;
+	overflow-wrap: break-word;
+}
+.prose-teez th {
+	background: #110c0f;
+	font-weight: 700;
+}
+.prose-teez hr {
+	border: 0;
+	border-top: 1px solid #2a1f24;
+	margin: 1em 0;
+}
+.prose-teez input[type="checkbox"] {
+	accent-color: var(--color-red);
+	margin-right: 0.4em;
+}
