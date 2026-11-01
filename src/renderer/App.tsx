@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { claudeUsageOf } from "./state/usage-event.ts";
 import { MotionConfig } from "framer-motion";
 import type { TeezApi, ClaudeStatus } from "../preload/index.ts";
 import { activeWorkspaceIdOf, useSettings } from "./state/settings.ts";
@@ -108,9 +109,9 @@ function Shell(): React.JSX.Element {
 
 		const offEvent = window.teez.chat.onEvent((envelope) => {
 			const event = envelope.event;
-			if (event.kind === "rate-limit") {
-				useAgents.getState().setUsage({ status: event.status, window: event.window, resetsAt: event.resetsAt, seenAt: Date.now() });
-			}
+			// Only a Claude chat's limits are Claude's plan usage (Codex reports its own).
+			const usage = claudeUsageOf(event, useChats.getState().chats[envelope.chatId]?.agent);
+			if (usage) useAgents.getState().setUsage(usage);
 			// A Claude turn spends from the plan limits; a session starting is the first that can report them.
 			if ((event.kind === "turn-end" || event.kind === "session-ready") && useChats.getState().chats[envelope.chatId]?.agent === "claude") {
 				usageMayHaveChanged();

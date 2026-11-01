@@ -1,9 +1,9 @@
 import { useSettings } from "../../state/settings.ts";
 import { useAgents } from "../../state/agents.ts";
-import { AGY_PERMISSIONS, CLAUDE_PERMISSIONS } from "../../chat/agent-options.ts";
+import { AGY_PERMISSIONS, CLAUDE_PERMISSIONS, CODEX_PERMISSIONS, emptyModelsItem } from "../../chat/agent-options.ts";
 import { useMemo } from "react";
 import { CLAUDE_CHOICES, withCurrentOption } from "../../../shared/models.ts";
-import { CLAUDE_EFFORT_OPTIONS } from "../../../shared/effort.ts";
+import { CLAUDE_EFFORT_OPTIONS, CODEX_EFFORT_OPTIONS } from "../../../shared/effort.ts";
 import { Row, Section, Segmented, Select, Toggle, type Option } from "./controls.tsx";
 
 const CLAUDE_OPTIONS: readonly Option[] = [{ id: "", label: "Default" }, ...CLAUDE_CHOICES.map((c) => ({ id: c.id, label: c.label }))];
@@ -20,6 +20,12 @@ export function ChatPage(): React.JSX.Element | null {
 	// "" is the CLI's own default; a saved id no longer listed (an old setting,
 	// a model Antigravity has dropped) is offered as itself.
 	const agyOptions = useMemo(() => withCurrentOption([{ id: "", label: "Default" }, ...agyModels], agyModel), [agyModels, agyModel]);
+	const codexModels = useAgents((s) => s.codexModels);
+	const codexAvailable = useAgents((s) => s.codexAvailable);
+	const codexReason = useAgents((s) => s.codexReason);
+	const codexModel = agent?.codexModel ?? "";
+	// "" is the account's default Codex model; a saved id no longer listed is offered as itself.
+	const codexOptions = useMemo(() => withCurrentOption([{ id: "", label: "Default" }, ...codexModels], codexModel), [codexModels, codexModel]);
 	if (!agent || !chat) return null;
 
 	return (
@@ -31,8 +37,9 @@ export function ChatPage(): React.JSX.Element | null {
 						options={[
 							{ id: "claude", label: "Claude Code" },
 							{ id: "agy", label: agyAvailable ? "Antigravity" : "Antigravity (not found)" },
+							{ id: "codex", label: codexAvailable ? "Codex" : "Codex (not set up)" },
 						]}
-						onChange={(id) => setAgent({ defaultAgent: id === "agy" ? "agy" : "claude" })}
+						onChange={(id) => setAgent({ defaultAgent: id === "agy" || id === "codex" ? id : "claude" })}
 					/>
 				</Row>
 				<Row label="Claude model">
@@ -60,6 +67,15 @@ export function ChatPage(): React.JSX.Element | null {
 				</Row>
 				<Row label="Antigravity mode" hint={AGY_PERMISSIONS.find((p) => p.id === agent.agyPermission)?.hint}>
 					<Select label="Antigravity mode" value={agent.agyPermission} options={AGY_PERMISSIONS} onChange={(id) => setAgent({ agyPermission: id as never })} />
+				</Row>
+				<Row label="Codex model" hint={codexAvailable ? "Your ChatGPT plan's models, as Codex lists them." : emptyModelsItem("codex", codexReason).hint}>
+					<Select label="Codex model" value={agent.codexModel} options={codexOptions} onChange={(codexModel) => setAgent({ codexModel })} />
+				</Row>
+				<Row label="Codex effort" hint={CODEX_EFFORT_OPTIONS.find((o) => o.id === agent.codexEffort)?.hint}>
+					<Segmented value={agent.codexEffort} options={CODEX_EFFORT_OPTIONS.map((o) => ({ id: o.id, label: o.label }))} onChange={(id) => setAgent({ codexEffort: id as never })} />
+				</Row>
+				<Row label="Codex mode" hint={CODEX_PERMISSIONS.find((p) => p.id === agent.codexPermission)?.hint}>
+					<Select label="Codex mode" value={agent.codexPermission} options={CODEX_PERMISSIONS} onChange={(id) => setAgent({ codexPermission: id as never })} />
 				</Row>
 			</Section>
 			<Section title="Chat">

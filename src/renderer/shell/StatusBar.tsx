@@ -1,4 +1,5 @@
 import { Bot, GitBranch, TerminalSquare } from "lucide-react";
+import { agentName } from "../chat/agent-options.ts";
 import { useActiveWorkspace } from "../state/settings.ts";
 import { useTree } from "../state/tree.ts";
 import { useChats } from "../state/chats.ts";
@@ -39,7 +40,7 @@ export function StatusBar(): React.JSX.Element {
 				{chat ? (
 					<span className="flex items-center gap-1" title="Agent in this workspace">
 						{chat.running ? <span className="pulse-dot mx-0.5 h-1.5 w-1.5 rounded-full bg-red-hot shadow-[0_0_8px_var(--color-glow)]" /> : <Bot size={11} />}
-						{chat.agent === "claude" ? "Claude" : "Antigravity"}
+						{agentName(chat.agent)}
 						{chat.sessionModel || chat.model ? ` · ${chat.sessionModel || chat.model}` : ""}
 						{chat.totalCostUsd > 0 ? ` · $${chat.totalCostUsd.toFixed(3)}` : ""}
 					</span>

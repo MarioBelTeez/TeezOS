@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { agentDefaults } from "../../shared/agent-defaults.ts";
 import { ChevronDown, MessageCircleQuestionMark, SendHorizonal, Slash, Square } from "lucide-react";
 import type { Workspace } from "../../main/settings/store.ts";
 import { CLAUDE_CHOICES, choiceOf, geminiAtEffort, modelForChoice, type Effort, type ModelChoice } from "../../shared/models.ts";
@@ -9,7 +10,7 @@ import { useChats, type Chat } from "../state/chats.ts";
 import { useSettings } from "../state/settings.ts";
 import { useUi, type ComposerMenu, type MenuItem } from "../state/ui.ts";
 import { useAgents, useModelChoices } from "../state/agents.ts";
-import { AGY_PERMISSIONS, CLAUDE_PERMISSIONS } from "./agent-options.ts";
+import { AGY_PERMISSIONS, CLAUDE_PERMISSIONS, CODEX_PERMISSIONS, emptyModelsItem } from "./agent-options.ts";
 import { planModelSwitch } from "./model-switch.ts";
 
 /**
@@ -21,6 +22,7 @@ import { planModelSwitch } from "./model-switch.ts";
 const GROUPS: readonly { readonly agent: ModelChoice["agent"]; readonly label: string }[] = [
 	{ agent: "claude", label: "Claude" },
 	{ agent: "agy", label: "Gemini · Antigravity" },
+	{ agent: "codex", label: "ChatGPT · Codex" },
 ];
 
 export function ComposerBar({
@@ -168,9 +170,9 @@ function modelLabel(chat: Chat | null, choices: readonly ModelChoice[]): string 
 
 function ModelPicker({ workspace, chat }: { readonly workspace: Workspace; readonly chat: Chat | null }): React.JSX.Element {
 	const agyModels = useAgents((s) => s.agyModels);
+	const codexReason = useAgents((s) => s.codexReason);
 	const choices = useModelChoices();
 	const settings = useSettings((s) => s.settings);
-	const setAgent = useSettings((s) => s.setAgent);
 	// A Gemini chat's own effort picks the variant; otherwise the default for new chats.
 	const effort: Effort = chat?.agent === "agy" && isAgyEffort(chat.effort) ? chat.effort : (settings?.agent.agyEffort ?? "medium");
 	const current = chat ? choiceOf(chat.agent, chat.model, choices) : undefined;
@@ -194,11 +196,10 @@ function ModelPicker({ workspace, chat }: { readonly workspace: Workspace; reado
 		if (plan.kind === "in-place") {
 			if (!from || plan.model === from.model) return;
 			useChats.getState().setModel(from.chatId, plan.model);
-			setAgent(choice.agent === "claude" ? { claudeModel: plan.model } : { agyModel: plan.model });
 			return;
 		}
-		const permission = plan.agent === "claude" ? settings?.agent.claudePermission : settings?.agent.agyPermission;
-		const opened = await useChats.getState().openChat(workspace.id, {
+		const permission = settings ? agentDefaults(plan.agent, settings.agent).permission : undefined;
+		await useChats.getState().openChat(workspace.id, {
 			agent: plan.agent,
 			model: plan.model,
 			...(permission ? { permission } : {}),
@@ -207,8 +208,7 @@ function ModelPicker({ workspace, chat }: { readonly workspace: Workspace; reado
 			...(from && plan.prefill ? { title: from.title } : {}),
 			prefill: plan.prefill,
 		});
-		// Declining to close an old chat opens nothing: the default stays as it was.
-		if (opened) setAgent({ defaultAgent: plan.agent });
+		// The switch changes this chat only: the defaults change in Settings → Chat or with a preset.
 	};
 
 	const open = (rect: DOMRect): void => {
@@ -221,7 +221,7 @@ function ModelPicker({ workspace, chat }: { readonly workspace: Workspace; reado
 				items.push({ label: `● ${chat.model}`, hint: "no longer listed", onSelect: () => undefined });
 			}
 			const offered = choices.filter((c) => c.agent === group.agent);
-			if (offered.length === 0) items.push({ label: "  No Gemini models", disabled: true, hint: "none listed by Antigravity", onSelect: () => undefined });
+			if (offered.length === 0) items.push({ ...emptyModelsItem(group.agent, codexReason), disabled: true, onSelect: () => undefined });
 			for (const choice of offered) {
 				const model = modelForChoice(choice, effort, available);
 				items.push({
@@ -268,16 +268,14 @@ function Picker({
 }
 
 function ModePicker({ chat }: { readonly chat: Chat }): React.JSX.Element {
-	const setAgent = useSettings((s) => s.setAgent);
 	return (
 		<Picker
 			which="mode"
 			label="mode"
 			value={chat.permission}
-			options={chat.agent === "claude" ? CLAUDE_PERMISSIONS : AGY_PERMISSIONS}
+			options={chat.agent === "claude" ? CLAUDE_PERMISSIONS : chat.agent === "codex" ? CODEX_PERMISSIONS : AGY_PERMISSIONS}
 			onChange={(mode) => {
 				useChats.getState().setPermission(chat.chatId, mode);
-				setAgent(chat.agent === "claude" ? { claudePermission: mode as never } : { agyPermission: mode as never });
 			}}
 		/>
 	);
@@ -286,11 +284,10 @@ function ModePicker({ chat }: { readonly chat: Chat }): React.JSX.Element {
 /**
  * How hard the chat's agent thinks. Claude applies it from the next request,
  * mid-session too. For Gemini the level is part of the model, so the chat
- * also moves to that model's variant. The pick becomes the default for new
- * chats, as the model and mode do.
+ * also moves to that model's variant. It changes this chat only, never the
+ * defaults (Settings → Chat or a preset set those).
  */
 function EffortPicker({ chat }: { readonly chat: Chat }): React.JSX.Element {
-	const setAgent = useSettings((s) => s.setAgent);
 	const agyModels = useAgents((s) => s.agyModels);
 	return (
 		<Picker
@@ -302,13 +299,9 @@ function EffortPicker({ chat }: { readonly chat: Chat }): React.JSX.Element {
 				if (effort === chat.effort) return;
 				const chats = useChats.getState();
 				chats.setEffort(chat.chatId, effort);
-				if (chat.agent === "claude") {
-					setAgent({ claudeEffort: effort as never });
-					return;
-				}
+				if (chat.agent === "claude") return;
 				const variant = geminiAtEffort(chat.model, effort as Effort, agyModels.map((m) => m.id));
 				if (variant) chats.setModel(chat.chatId, variant);
-				setAgent({ agyEffort: effort as never, ...(variant ? { agyModel: variant } : {}) });
 			}}
 		/>
 	);

@@ -83,6 +83,8 @@ export class BtwService {
 		if (typeof question !== "string") return { error: "The question must be text." };
 		const chat = this.#deps.chat(chatId);
 		if (!chat) return { error: "This chat is no longer running." };
+		// Codex has no side-question runner yet: say so rather than hand the question to another agent.
+		if (chat.agent === "codex") return { error: "Side questions (/btw) aren't available in Codex chats yet." };
 		const text = question.trim();
 		const limit = chat.agent === "agy" ? MAX_AGY_QUESTION : MAX_QUESTION;
 		if (text.length === 0) return { error: "Ask something first." };

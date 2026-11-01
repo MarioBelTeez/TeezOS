@@ -23,6 +23,15 @@ describe("presets", () => {
 		// Saved before 0.3.8: no effort at all, still a valid preset.
 		expect(normalizePresets([preset({ agent: "claude", model: "opus", permission: "auto" })])[0]?.chat).toEqual({ agent: "claude", model: "opus", permission: "auto" });
 	});
+	test("a Codex preset's chat survives a reload as Codex", () => {
+		const preset = (chat: Record<string, unknown>) => ({ id: "p-1", name: "Mine", builtIn: false, layout: { kind: "grid", grid: {} }, modules: {}, chat });
+		expect(normalizePresets([preset({ agent: "codex", model: "gpt-5.5", permission: "auto-edit", effort: "high" })])[0]?.chat).toEqual({
+			agent: "codex",
+			model: "gpt-5.5",
+			permission: "auto-edit",
+			effort: "high",
+		});
+	});
 	test("at most 30, and allPresets puts built-ins first", () => {
 		const many = Array.from({ length: 40 }, (_, i) => ({ id: `p-${i}`, name: `P${i}`, builtIn: false, layout: { kind: "grid", grid: {} }, modules: {}, chat: null }));
 		expect(normalizePresets(many)).toHaveLength(MAX_PRESETS);

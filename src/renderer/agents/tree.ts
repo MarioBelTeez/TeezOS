@@ -29,7 +29,7 @@ export type AgentNode = {
 	readonly steps: readonly AgentStep[];
 };
 export type AgentTree = { readonly nodes: Readonly<Record<string, AgentNode>>; readonly order: readonly string[] };
-export type ChatMeta = { readonly chatId: string; readonly title: string; readonly agent: "claude" | "agy"; readonly model: string };
+export type ChatMeta = { readonly chatId: string; readonly title: string; readonly agent: "claude" | "agy" | "codex"; readonly model: string };
 export type AgentRun = {
 	readonly id: string;
 	readonly jobName: string;

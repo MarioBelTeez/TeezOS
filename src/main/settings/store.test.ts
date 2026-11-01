@@ -89,6 +89,21 @@ describe("normalizeSettings", () => {
 		expect(settings.agent.agyPermission).toBe("accept-edits");
 	});
 
+	test("Codex settings: defaults, a saved Codex default agent, unknown values fall back", () => {
+		const empty = normalizeSettings({});
+		expect(empty.agent.codexModel).toBe("");
+		expect(empty.agent.codexPermission).toBe("ask");
+		expect(empty.agent.codexEffort).toBe("medium");
+		const saved = normalizeSettings({ agent: { defaultAgent: "codex", codexModel: "gpt-5.5", codexPermission: "full-access", codexEffort: "high" } });
+		expect(saved.agent.defaultAgent).toBe("codex");
+		expect(saved.agent.codexModel).toBe("gpt-5.5");
+		expect(saved.agent.codexPermission).toBe("full-access");
+		expect(saved.agent.codexEffort).toBe("high");
+		const bad = normalizeSettings({ agent: { codexPermission: "yolo", codexEffort: "ultra" } });
+		expect(bad.agent.codexPermission).toBe("ask");
+		expect(bad.agent.codexEffort).toBe("medium");
+	});
+
 	test("auto is a Claude permission mode that survives a reload", () => {
 		const settings = normalizeSettings({ agent: { claudePermission: "auto" } });
 		expect(settings.agent.claudePermission).toBe("auto");

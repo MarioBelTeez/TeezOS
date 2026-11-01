@@ -7,7 +7,7 @@ import { IconButton } from "../shell/IconButton.tsx";
 import { revealPanel } from "../shell/dock-actions.ts";
 import { useTerminals } from "../terminal/TerminalDock.tsx";
 import { foldHistory } from "./reduce.ts";
-import { agentName } from "./agent-options.ts";
+import { AGENT_STYLE, agentName } from "./agent-options.ts";
 import { orderedTabs } from "./tab-order.ts";
 import { copyText, deletePastSession } from "./session-actions.ts";
 
@@ -252,8 +252,8 @@ function ChatTab({
 			{/* The agent's colour; it pulses while the chat is working. */}
 			<span
 				title={chat.running ? "Working" : undefined}
-				className={`h-1.5 w-1.5 shrink-0 rounded-full ${chat.agent === "claude" ? "bg-red-hot" : "bg-violet"} ${chat.running ? "pulse-dot" : ""} ${
-					selected || chat.running ? (chat.agent === "claude" ? "shadow-[0_0_8px_var(--color-glow)]" : "shadow-[0_0_8px_rgb(124_108_255/0.55)]") : ""
+				className={`h-1.5 w-1.5 shrink-0 rounded-full ${AGENT_STYLE[chat.agent].dot} ${chat.running ? "pulse-dot" : ""} ${
+					selected || chat.running ? AGENT_STYLE[chat.agent].glow : ""
 				}`}
 			/>
 			<span className="truncate">{tabTitle(chat.title)}</span>

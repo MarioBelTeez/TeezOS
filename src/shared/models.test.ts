@@ -175,3 +175,33 @@ describe("geminiAtEffort", () => {
 		expect(geminiAtEffort("gpt-oss-120b", "high", available)).toBeNull();
 	});
 });
+
+describe("Codex models", () => {
+	const codex = [
+		{ id: "gpt-6.1-sol", label: "GPT-6.1-Sol", agent: "codex" as const },
+		{ id: "gpt-5.5", label: "GPT-5.5", agent: "codex" as const },
+	];
+	const choices = [...CLAUDE_CHOICES, ...codex];
+
+	test("a Codex model is its own choice, by exact id", () => {
+		expect(choiceOf("codex", "gpt-5.5", choices)?.label).toBe("GPT-5.5");
+		expect(choiceOf("codex", "", choices)).toBeUndefined();
+		expect(choiceOf("codex", "opus", choices)).toBeUndefined();
+	});
+
+	test("picking a Codex choice uses its id whatever the effort", () => {
+		expect(modelForChoice(codex[1]!, "high", [])).toBe("gpt-5.5");
+	});
+
+	test("labels a Codex model by its display name", () => {
+		expect(modelLabelOf("gpt-6.1-sol", choices)).toBe("GPT-6.1-Sol");
+	});
+});
+
+describe("modelChoices with Codex", () => {
+	test("Codex's models follow Claude's and Gemini's, as Codex choices", () => {
+		const choices = modelChoices([], [{ id: "gpt-6.1-sol", label: "GPT-6.1-Sol" }]);
+		expect(choices.at(-1)).toEqual({ id: "gpt-6.1-sol", label: "GPT-6.1-Sol", agent: "codex" });
+		expect(modelChoices([]).some((c) => c.agent === "codex")).toBe(false);
+	});
+});

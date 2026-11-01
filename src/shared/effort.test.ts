@@ -16,6 +16,13 @@ describe("effort", () => {
 		expect(isEffort("claude", 3)).toBe(false);
 	});
 
+	test("Codex offers low, medium and high: the levels every Codex model supports", () => {
+		expect(effortOptions("codex").map((o) => o.id)).toEqual(["low", "medium", "high"]);
+		expect(isEffort("codex", "high")).toBe(true);
+		expect(isEffort("codex", "max")).toBe(false);
+		expect(isEffort("codex", "")).toBe(false);
+	});
+
 	test("labels", () => {
 		expect(effortLabel("claude", "")).toBe("Default");
 		expect(effortLabel("claude", "xhigh")).toBe("Extra high");

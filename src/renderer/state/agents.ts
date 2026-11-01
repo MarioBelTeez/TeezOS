@@ -22,6 +22,10 @@ type AgentsState = {
 	readonly setUsage: (usage: Usage) => void;
 	readonly agyAvailable: boolean;
 	readonly agyModels: readonly AgyModel[];
+	readonly codexAvailable: boolean;
+	/** Why Codex can't run, when it can't (shown in Settings and on a Codex chat's card). */
+	readonly codexReason: "codex-not-found" | "codex-logged-out" | "codex-unsupported" | null;
+	readonly codexModels: readonly AgyModel[];
 	readonly load: () => Promise<void>;
 };
 
@@ -30,9 +34,21 @@ export const useAgents = create<AgentsState>((set) => ({
 	setUsage: (usage) => set({ usage }),
 	agyAvailable: false,
 	agyModels: [],
+	codexAvailable: false,
+	codexReason: null,
+	codexModels: [],
 	load: async () => {
-		const status = await window.teez.agents.agyStatus();
-		set({ agyAvailable: status.available, agyModels: status.models });
+		const [agy, codex] = await Promise.all([
+			window.teez.agents.agyStatus(),
+			window.teez.agents.codexStatus().catch(() => ({ available: false, reason: "codex-not-found" as const, models: [] })),
+		]);
+		set({
+			agyAvailable: agy.available,
+			agyModels: agy.models,
+			codexAvailable: codex.available,
+			codexReason: codex.available ? null : (codex.reason ?? "codex-not-found"),
+			codexModels: codex.models,
+		});
 	},
 }));
 
@@ -43,7 +59,8 @@ export const useAgents = create<AgentsState>((set) => ({
  */
 export function useModelChoices(): readonly ModelChoice[] {
 	const agyModels = useAgents((s) => s.agyModels);
-	return useMemo(() => modelChoices(agyModels), [agyModels]);
+	const codexModels = useAgents((s) => s.codexModels);
+	return useMemo(() => modelChoices(agyModels, codexModels), [agyModels, codexModels]);
 }
 
 /** A model id as people read it: "Opus 5.5", "Gemini 3.8 Flash", or the id itself when unknown. */

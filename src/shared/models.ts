@@ -44,8 +44,8 @@ export function geminiChoices(available: readonly ListedModel[]): ModelChoice[] 
 }
 
 /** Everything the model picker offers: Claude first, then Gemini. */
-export function modelChoices(available: readonly ListedModel[]): ModelChoice[] {
-	return [...CLAUDE_CHOICES, ...geminiChoices(available)];
+export function modelChoices(available: readonly ListedModel[], codex: readonly ListedModel[] = []): ModelChoice[] {
+	return [...CLAUDE_CHOICES, ...geminiChoices(available), ...codex.map((m) => ({ id: m.id, label: m.label, agent: "codex" as const }))];
 }
 
 const FALLBACK: Readonly<Record<Effort, readonly Effort[]>> = {
@@ -70,17 +70,18 @@ export function agyModelId(family: string, effort: Effort, available: readonly s
 export function choiceOf(agent: AgentKind, model: string, choices: readonly ModelChoice[] = CLAUDE_CHOICES): ModelChoice | undefined {
 	if (agent === "claude") return choices.find((c) => c.agent === "claude" && c.id === (model || "opus"));
 	if (!model) return undefined;
+	if (agent === "codex") return choices.find((c) => c.agent === "codex" && c.id === model);
 	const family = geminiFamily(model);
 	return choices.find((c) => c.agent === "agy" && c.id === family);
 }
 
 export function modelForChoice(choice: ModelChoice, effort: Effort, available: readonly string[]): string | null {
-	return choice.agent === "claude" ? choice.id : agyModelId(choice.id, effort, available);
+	return choice.agent === "agy" ? agyModelId(choice.id, effort, available) : choice.id;
 }
 
 /** "opus" → "Opus 5.5", "gemini-3.8-flash-high" → "Gemini 3.8 Flash"; anything else as it came. */
 export function modelLabelOf(model: string, choices: readonly ModelChoice[]): string {
-	const choice = choices.find((c) => (c.agent === "claude" ? model === c.id : geminiFamily(model) === c.id));
+	const choice = choices.find((c) => (c.agent === "agy" ? geminiFamily(model) === c.id : model === c.id));
 	return choice?.label ?? model;
 }
 

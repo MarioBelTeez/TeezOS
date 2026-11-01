@@ -1,6 +1,7 @@
 import type { AgentSettings } from "../../main/settings/store.ts";
 import type { Preset } from "../../shared/presets.ts";
-import { AGY_PERMISSIONS, CLAUDE_PERMISSIONS } from "../chat/agent-options.ts";
+import { AGY_PERMISSIONS, CLAUDE_PERMISSIONS, CODEX_PERMISSIONS } from "../chat/agent-options.ts";
+import { agentDefaults } from "../../shared/agent-defaults.ts";
 import { isEffort } from "../../shared/effort.ts";
 
 /**
@@ -11,9 +12,7 @@ import { isEffort } from "../../shared/effort.ts";
 export type PresetChat = NonNullable<Preset["chat"]>;
 
 export function presetChatOf(agent: AgentSettings): PresetChat {
-	return agent.defaultAgent === "claude"
-		? { agent: "claude", model: agent.claudeModel, permission: agent.claudePermission, effort: agent.claudeEffort }
-		: { agent: "agy", model: agent.agyModel, permission: agent.agyPermission, effort: agent.agyEffort };
+	return { agent: agent.defaultAgent, ...agentDefaults(agent.defaultAgent, agent) };
 }
 
 /**
@@ -29,6 +28,14 @@ export function agentPatchOf(chat: PresetChat): Partial<AgentSettings> {
 			claudeModel: chat.model,
 			...(known ? { claudePermission: chat.permission as AgentSettings["claudePermission"] } : {}),
 			...(effortKnown ? { claudeEffort: chat.effort as AgentSettings["claudeEffort"] } : {}),
+		};
+	}
+	if (chat.agent === "codex") {
+		return {
+			defaultAgent: "codex",
+			codexModel: chat.model,
+			...(CODEX_PERMISSIONS.some((p) => p.id === chat.permission) ? { codexPermission: chat.permission as AgentSettings["codexPermission"] } : {}),
+			...(effortKnown ? { codexEffort: chat.effort as AgentSettings["codexEffort"] } : {}),
 		};
 	}
 	const known = AGY_PERMISSIONS.some((p) => p.id === chat.permission);

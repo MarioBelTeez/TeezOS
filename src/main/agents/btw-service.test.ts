@@ -69,6 +69,13 @@ describe("BtwService", () => {
 		expect(claude).toHaveLength(0);
 	});
 
+	test("a Codex chat gets a clear answer and never runs another agent", () => {
+		const { service, claude, agy } = setup({ x1: { agent: "codex", cwd: "C:/v", model: "gpt-5.5", sessionId: "" } });
+		expect(service.ask("x1", "hi")).toEqual({ error: "Side questions (/btw) aren't available in Codex chats yet." });
+		expect(claude).toHaveLength(0);
+		expect(agy).toHaveLength(0);
+	});
+
 	test("Antigravity's limit leaves room for the hand-over, but not without end", () => {
 		const { service } = setup({ a1: agyChat });
 		expect(service.ask("a1", "x".repeat(12001))).toEqual({ error: expect.any(String) });

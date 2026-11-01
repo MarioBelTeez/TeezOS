@@ -15,7 +15,7 @@ import { remoteControlCommand } from "./remote.ts";
  */
 
 /** "claude-remote": Remote Control server for new phone sessions; "claude-resume-remote": one chat handed over to the phone. */
-export type TerminalProfile = "shell" | "ssh-pve" | "ssh-ct" | "claude-login" | "claude-setup-token" | "agy" | "claude-remote" | "claude-resume-remote";
+export type TerminalProfile = "shell" | "ssh-pve" | "ssh-ct" | "claude-login" | "claude-setup-token" | "agy" | "codex-login" | "claude-remote" | "claude-resume-remote";
 
 export type TerminalInfo = {
 	readonly id: string;
@@ -44,7 +44,7 @@ export function defaultShell(env: NodeJS.ProcessEnv = process.env, platform = pr
 	return autoShell(env, platform, existsSync);
 }
 
-function program(profile: TerminalProfile, vmid?: number, choice: ShellChoice = "auto", sessionId?: string): { file: string; args: readonly string[]; title: string } {
+export function terminalProgram(profile: TerminalProfile, vmid?: number, choice: ShellChoice = "auto", sessionId?: string): { file: string; args: readonly string[]; title: string } {
 	const shell = defaultShell();
 	const isPowerShell = /pwsh|powershell/i.test(shell);
 	switch (profile) {
@@ -75,6 +75,11 @@ function program(profile: TerminalProfile, vmid?: number, choice: ShellChoice = 
 				? { file: shell, args: ["-NoLogo", "-NoExit", "-Command", command], title }
 				: { file: shell, args: ["-lc", command + "; exec $SHELL"], title };
 		}
+		case "codex-login":
+			// Codex's own login (ChatGPT account in the browser); TeezOS never sees the result.
+			return isPowerShell
+				? { file: shell, args: ["-NoLogo", "-NoExit", "-Command", "codex login"], title: "codex login" }
+				: { file: shell, args: ["-lc", "codex login; exec $SHELL"], title: "codex login" };
 		case "agy":
 			return isPowerShell
 				? { file: shell, args: ["-NoLogo", "-NoExit", "-Command", "agy"], title: "agy" }
@@ -102,7 +107,7 @@ export class TerminalService {
 		/** The Claude session a "claude-resume-remote" tab resumes. */
 		readonly sessionId?: string;
 	}): TerminalInfo {
-		const { file, args, title } = program(options.profile, options.vmid, options.shell, options.sessionId);
+		const { file, args, title } = terminalProgram(options.profile, options.vmid, options.shell, options.sessionId);
 		const id = randomUUID();
 		const child = pty.spawn(file, [...args], {
 			name: "xterm-256color",

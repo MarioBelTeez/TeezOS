@@ -317,6 +317,9 @@ const teez = {
 	agents: {
 		agyStatus: (): Promise<{ available: boolean; models: { id: string; label: string }[] }> =>
 			ipcRenderer.invoke("agents:agy-status"),
+		/** Whether Codex can run: installed, a supported version, logged in; and the account's models. */
+		codexStatus: (): Promise<{ available: boolean; reason?: "codex-not-found" | "codex-logged-out" | "codex-unsupported"; version?: string; models: { id: string; label: string }[] }> =>
+			ipcRenderer.invoke("agents:codex-status"),
 		/** Claude's plan limits from an open Claude chat; null when none can say. */
 		usage: (): Promise<ClaudeUsage | null> => ipcRenderer.invoke("usage:get"),
 	},

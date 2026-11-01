@@ -198,6 +198,7 @@ const PROFILE_LABELS: Readonly<Record<Exclude<TerminalProfile, "ssh-ct" | "claud
 	"ssh-pve": "SSH to the server (pve)",
 	"claude-login": "Claude Code (log in / interactive)",
 	agy: "Antigravity CLI",
+	"codex-login": "Codex (log in with ChatGPT)",
 	"claude-remote": "Remote Control: new Claude sessions from your phone",
 };
 

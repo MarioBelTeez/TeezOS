@@ -25,7 +25,21 @@ TeezOS doesn't have its own AI. It drives **Claude Code**, Anthropic's command-l
 2. Open a terminal, type `claude` and log in with your Claude account when it asks. Close it again afterwards.
 3. Restart TeezOS. It finds Claude Code on its own. If the chat says *Claude Code is not installed where TeezOS looks*, open the terminal in TeezOS and run `claude` once.
 
-> **Using ChatGPT instead?** Codex (ChatGPT's coding agent) isn't supported yet. It's being worked on. For now TeezOS runs **Claude** and, optionally, Google's **Antigravity** (see step 6).
+### 2b. Or use ChatGPT (Codex)
+
+If you use ChatGPT instead of Claude, TeezOS can run **Codex**, OpenAI's coding agent, on **your ChatGPT account** (free or paid; the free plan has a usage cap).
+
+1. Install Codex: in PowerShell, `npm i -g @openai/codex@0.166` (you need [Node.js](https://nodejs.org) first). TeezOS works with Codex **0.166.x**; it tells you if yours is a different version.
+2. Run `codex login`. A browser opens: sign in with your ChatGPT account. TeezOS never sees your login; it only asks Codex whether you're logged in.
+3. Restart TeezOS. In a chat, open the **model** menu: the **ChatGPT · Codex** group lists the models your account can use. To make Codex the agent every new chat starts with, pick it in **Settings → Chat → Default agent**.
+
+Codex has three modes, chosen next to the model:
+
+| Mode | What it does |
+|---|---|
+| **Ask** | Asks before every command and every file change. Start here. |
+| **Auto-edit** | Changes files inside your project folder without asking; commands still ask. |
+| **Full access** | Never asks. Only in a folder you could afford to lose. |
 
 ### 3. Open your first project
 

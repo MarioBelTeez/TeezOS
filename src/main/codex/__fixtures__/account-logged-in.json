@@ -1,0 +1,14 @@
+{
+ "account": {
+  "type": "chatgpt",
+  "email": "user@example.com",
+  "planType": "free",
+  "workspaceName": null
+ },
+ "requiresOpenaiAuth": true,
+ "workspaceRouting": {
+  "chatgptAccountId": "bbf817fe-0411-473e-b184-812d7b71c201",
+  "backendOrigin": "https://chatgpt.com",
+  "accountRoutingOverride": "NO_CONSTRAINT"
+ }
+}

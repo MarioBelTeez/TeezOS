@@ -11,7 +11,7 @@ import type { AgentKind } from "./registry.ts";
 export type Attention = { readonly title: string; readonly body: string };
 export type AttentionContext = { readonly agent: AgentKind; readonly workspace: string };
 
-const AGENT_NAME: Record<AgentKind, string> = { claude: "Claude", agy: "Antigravity" };
+const AGENT_NAME: Record<AgentKind, string> = { claude: "Claude", agy: "Antigravity", codex: "Codex" };
 const MAX_BODY = 160;
 
 /** Control (C0, C1), zero-width, line/paragraph separator and bidi characters: invisible, or they reorder text. */

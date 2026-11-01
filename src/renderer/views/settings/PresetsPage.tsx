@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { agentName } from "../../chat/agent-options.ts";
 import { allPresets, MAX_PRESET_NAME, type Preset } from "../../../shared/presets.ts";
 import { enabledViews, VIEW_IDS } from "../../../shared/views.ts";
 import { isModuleEnabled } from "../../../shared/modules.ts";
@@ -13,7 +14,7 @@ const inputClass = "min-w-0 bg-surface px-2 py-1 font-mono text-[12px] text-text
 function describe(preset: Preset): string {
 	if (preset.layout.kind === "plan") return preset.layout.steps.map((s) => PANEL_LABEL[s.panel]).join(" · ");
 	const off = Object.entries(preset.modules).filter(([, on]) => on === false).length;
-	return `saved desk${off > 0 ? ` · ${off} module${off === 1 ? "" : "s"} off` : ""}${preset.chat ? ` · ${preset.chat.agent === "claude" ? "Claude" : "Antigravity"} chats` : ""}`;
+	return `saved desk${off > 0 ? ` · ${off} module${off === 1 ? "" : "s"} off` : ""}${preset.chat ? ` · ${agentName(preset.chat.agent)} chats` : ""}`;
 }
 
 function PresetRow({ preset }: { readonly preset: Preset }): React.JSX.Element {

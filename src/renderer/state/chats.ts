@@ -1,4 +1,5 @@
 import { effortLabel } from "../../shared/effort.ts";
+import { agentDefaults } from "../../shared/agent-defaults.ts";
 import { create } from "zustand";
 import type { AgentKind } from "../../main/agents/registry.ts";
 import type { ChatApproval, ChatEvent, ChatPause } from "../../preload/index.ts";
@@ -106,12 +107,10 @@ export const useChats = create<ChatsState>((set, get) => {
 
 			const settings = await window.teez.settings.get();
 			const agent = options.agent ?? settings.agent.defaultAgent;
-			const model =
-				options.model ?? (agent === "claude" ? settings.agent.claudeModel : settings.agent.agyModel);
-			const permission =
-				options.permission ??
-				(agent === "claude" ? settings.agent.claudePermission : settings.agent.agyPermission);
-			const effort = options.effort ?? (agent === "claude" ? settings.agent.claudeEffort : settings.agent.agyEffort);
+			const defaults = agentDefaults(agent, settings.agent);
+			const model = options.model ?? defaults.model;
+			const permission = options.permission ?? defaults.permission;
+			const effort = options.effort ?? defaults.effort;
 
 			const chatId = await window.teez.chat.create({
 				workspaceId,

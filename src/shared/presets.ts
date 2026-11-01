@@ -140,7 +140,7 @@ function normalizePresetModules(value: unknown): Partial<Record<ModuleId, boolea
 
 function normalizePresetChat(value: unknown): Preset["chat"] {
 	if (!isBag(value)) return null;
-	const agent = pick<AgentKind>(value["agent"], ["claude", "agy"], "claude");
+	const agent = pick<AgentKind>(value["agent"], ["claude", "agy", "codex"], "claude");
 	const model = str(value["model"]);
 	const permission = str(value["permission"]);
 	if (value["agent"] !== agent || model === null || permission === null) return null;

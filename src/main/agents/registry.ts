@@ -13,7 +13,7 @@ import type { ClaudeUsage } from "../../shared/usage.ts";
  * turn ends).
  */
 
-export type AgentKind = "claude" | "agy";
+export type AgentKind = "claude" | "agy" | "codex";
 
 /** A slash command as the composer's menu lists it. */
 export type SlashCommandInfo = {

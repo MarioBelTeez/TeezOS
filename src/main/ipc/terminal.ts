@@ -8,7 +8,7 @@ import type { ShellChoice } from "../../shared/modules.ts";
 
 /** Terminals over IPC. The window names a workspace and a profile, never a program. */
 
-const PROFILES: readonly TerminalProfile[] = ["shell", "ssh-pve", "ssh-ct", "claude-login", "claude-setup-token", "agy", "claude-remote", "claude-resume-remote"];
+const PROFILES: readonly TerminalProfile[] = ["shell", "ssh-pve", "ssh-ct", "claude-login", "claude-setup-token", "agy", "codex-login", "claude-remote", "claude-resume-remote"];
 const SHELLS: readonly ShellChoice[] = ["auto", "powershell", "gitbash", "cmd"];
 const isText = (value: unknown): value is string => typeof value === "string";
 const isNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);

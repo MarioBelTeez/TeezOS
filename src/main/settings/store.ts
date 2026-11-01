@@ -28,12 +28,16 @@ export type Workspace = {
 	readonly icon?: "initials";
 };
 
-export type AgentKind = "claude" | "agy";
+export type AgentKind = "claude" | "agy" | "codex";
 /** Every permission mode TeezAI offers for Claude chats; the SDK's own names. */
 export const CLAUDE_PERMISSION_MODES = ["default", "acceptEdits", "auto", "plan", "bypassPermissions"] as const;
 export type ClaudePermission = (typeof CLAUDE_PERMISSION_MODES)[number];
 export type AgyPermission = "ask" | "plan" | "accept-edits" | "full-auto";
 export type AgyEffort = "low" | "medium" | "high";
+/** Codex (ChatGPT) modes: ask before every command and edit; auto-accept edits inside the workspace; no asking. */
+export const CODEX_PERMISSION_MODES = ["ask", "auto-edit", "full-access"] as const;
+export type CodexPermission = (typeof CODEX_PERMISSION_MODES)[number];
+export type CodexEffort = "low" | "medium" | "high";
 
 export type AgentSettings = {
 	readonly defaultAgent: AgentKind;
@@ -45,6 +49,10 @@ export type AgentSettings = {
 	readonly agyModel: string;
 	readonly agyPermission: AgyPermission;
 	readonly agyEffort: AgyEffort;
+	/** "" means the account's default Codex model. */
+	readonly codexModel: string;
+	readonly codexPermission: CodexPermission;
+	readonly codexEffort: CodexEffort;
 	/** A Windows notification when a chat finishes or waits, while the window is in the background. */
 	readonly notify: boolean;
 	/** Discord status: "private" shows what is happening but never a workspace name. */
@@ -117,6 +125,9 @@ export const DEFAULT_SETTINGS: Settings = {
 		agyModel: "",
 		agyPermission: "accept-edits",
 		agyEffort: "medium",
+		codexModel: "",
+		codexPermission: "ask",
+		codexEffort: "medium",
 		notify: true,
 		presence: "on",
 	},
@@ -197,7 +208,7 @@ export function normalizeSettings(raw: unknown): Settings {
 		activeWorkspaceId,
 		vaultPath: str(raw["vaultPath"]),
 		agent: {
-			defaultAgent: pick(agent["defaultAgent"], ["claude", "agy"], d.agent.defaultAgent),
+			defaultAgent: pick(agent["defaultAgent"], ["claude", "agy", "codex"], d.agent.defaultAgent),
 			claudeModel: str(agent["claudeModel"]) ?? d.agent.claudeModel,
 			claudePermission: pick(
 				agent["claudePermission"],
@@ -212,6 +223,9 @@ export function normalizeSettings(raw: unknown): Settings {
 				d.agent.agyPermission,
 			),
 			agyEffort: pick(agent["agyEffort"], ["low", "medium", "high"], d.agent.agyEffort),
+			codexModel: str(agent["codexModel"]) ?? d.agent.codexModel,
+			codexPermission: pick(agent["codexPermission"], CODEX_PERMISSION_MODES, d.agent.codexPermission),
+			codexEffort: pick(agent["codexEffort"], ["low", "medium", "high"], d.agent.codexEffort),
 			notify: bool(agent["notify"], d.agent.notify),
 			presence: pick(agent["presence"], PRESENCE_MODES, d.agent.presence),
 		},

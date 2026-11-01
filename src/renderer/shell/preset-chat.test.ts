@@ -10,6 +10,9 @@ const agent: AgentSettings = {
 	agyModel: "gemini-3.1-pro-high",
 	agyPermission: "accept-edits",
 	agyEffort: "medium",
+	codexModel: "gpt-5.5",
+	codexPermission: "auto-edit",
+	codexEffort: "low",
 	notify: true,
 	presence: "on",
 };
@@ -45,5 +48,20 @@ describe("agentPatchOf", () => {
 	test("an Antigravity preset without an effort takes it from its model's level", () => {
 		expect(agentPatchOf({ agent: "agy", model: "gemini-3.8-flash-high", permission: "plan" })).toMatchObject({ agyEffort: "high" });
 		expect(agentPatchOf({ agent: "agy", model: "", permission: "plan" })).not.toHaveProperty("agyEffort");
+	});
+});
+
+describe("Codex presets", () => {
+	test("a Codex default agent saves Codex's model, mode and effort", () => {
+		expect(presetChatOf({ ...agent, defaultAgent: "codex" })).toEqual({ agent: "codex", model: "gpt-5.5", permission: "auto-edit", effort: "low" });
+	});
+	test("applying a Codex preset sets the default agent and Codex's fields; an unknown mode or effort is skipped", () => {
+		expect(agentPatchOf({ agent: "codex", model: "gpt-6.1-sol", permission: "full-access", effort: "high" })).toEqual({
+			defaultAgent: "codex",
+			codexModel: "gpt-6.1-sol",
+			codexPermission: "full-access",
+			codexEffort: "high",
+		});
+		expect(agentPatchOf({ agent: "codex", model: "gpt-5.5", permission: "plan", effort: "ultra" })).toEqual({ defaultAgent: "codex", codexModel: "gpt-5.5" });
 	});
 });

@@ -110,7 +110,7 @@ export type ActivityContext = {
 	readonly startedAt: number;
 };
 
-const AGENT_NAME: Record<AgentKind, string> = { claude: "Claude", agy: "Antigravity" };
+const AGENT_NAME: Record<AgentKind, string> = { claude: "Claude", agy: "Antigravity", codex: "Codex" };
 /** Discord refuses a field shorter than 2 or longer than 128 characters. */
 const MAX_FIELD = 128;
 /** The key of the logo uploaded under Rich Presence → Art Assets. */

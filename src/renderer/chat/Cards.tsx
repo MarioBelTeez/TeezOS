@@ -5,6 +5,7 @@ import { safeMarkdownUrl } from "../../shared/safe-url.ts";
 import { AlertTriangle, Check, CircleDot, Loader2, ShieldAlert, X } from "lucide-react";
 import type { Card, ToolStep } from "./reduce.ts";
 import { summarize } from "./summarize.ts";
+import { needsLogin } from "./agent-options.ts";
 import { browserEnabled, openInBrowser } from "../browser/open.ts";
 
 /**
@@ -276,14 +277,17 @@ export const CardView = memo(function CardView({
 const HELP: Readonly<Record<string, string>> = {
 	"claude-not-found": "Claude Code is not installed where TeezOS looks. Install it, or open the terminal and run `claude` once.",
 	"agy-not-found": "Antigravity's CLI was not found. Install it from antigravity.google, then reopen TeezOS.",
+	"codex-not-found": "Codex isn't installed where TeezOS looks. Install it with `npm i -g @openai/codex`, run `codex login` once, then reopen TeezOS.",
+	"codex-logged-out": "Codex isn't logged in. Open the terminal, run `codex login` and sign in with your ChatGPT account.",
+	"codex-unsupported": "This Codex version isn't supported yet. TeezOS works with Codex 0.166.x. Update TeezOS, or install that Codex version (`npm i -g @openai/codex@0.166`).",
+	"codex-start": "Codex couldn't start this chat. If you haven't yet, run `codex login` in the terminal, then send the message again.",
+	"codex-exited": "Codex stopped unexpectedly. Send your message again to continue the same conversation.",
 	authentication_failed: "Claude Code is logged out. Open the terminal (Ctrl+`) and run `claude` to log in.",
 	billing_error: "The account has a billing problem. Check it in claude.ai, then retry.",
 	rate_limit: "The usage limit was reached. It resets on its own; the meter shows when.",
 	overloaded: "The service is overloaded right now. Retry in a minute.",
 	error_max_turns: "The run hit its turn limit before finishing. Ask it to continue.",
 };
-
-const LOGIN = /authentication_failed|not logged in|please log in|login required|\/login|invalid api key|oauth/i;
 
 function ErrorCard({
 	reason,
@@ -295,7 +299,7 @@ function ErrorCard({
 	readonly actions: CardActions;
 }): React.JSX.Element {
 	const help = HELP[reason] ?? Object.entries(HELP).find(([key]) => text.includes(key))?.[1];
-	const needsLogin = reason === "authentication_failed" || LOGIN.test(text);
+	const login = needsLogin(reason, text);
 	const canRetry = reason !== "agy-denied" && reason !== "claude-not-found" && reason !== "agy-not-found";
 	return (
 		<div className="cut-corner bg-red/10 px-3 py-2 text-[length:var(--chat-text)] ring-1 ring-red/40">
@@ -306,7 +310,7 @@ function ErrorCard({
 			{help ? <p className="mt-1">{help}</p> : null}
 			<pre className="mt-1 max-h-40 overflow-auto font-mono text-[length:var(--chat-code)] whitespace-pre-wrap text-muted">{text}</pre>
 			<div className="mt-2 flex gap-2">
-				{needsLogin ? (
+				{login ? (
 					<button type="button" onClick={actions.onLogin} className="cut-corner bg-red px-3 py-0.5 font-condensed text-[11px] uppercase tracking-wider">
 						Log in
 					</button>

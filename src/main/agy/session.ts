@@ -50,7 +50,7 @@ export type AgySessionDeps = {
 	readonly now?: () => number;
 };
 
-const defaultSpawn: SpawnFn = (file, args, options) =>
+export const defaultSpawn: SpawnFn = (file, args, options) =>
 	nodeSpawn(file, [...args], {
 		cwd: options.cwd,
 		windowsHide: true,
@@ -59,7 +59,7 @@ const defaultSpawn: SpawnFn = (file, args, options) =>
 		detached: process.platform !== "win32",
 	});
 
-function defaultKillTree(child: ChildLike): void {
+export function defaultKillTree(child: ChildLike): void {
 	if (!child.pid) {
 		child.kill();
 		return;

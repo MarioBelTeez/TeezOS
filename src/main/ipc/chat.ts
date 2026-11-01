@@ -6,13 +6,18 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import { resolveClaudeBinary, type LocateResult } from "../claude/locator.ts";
 import { ClaudeSession, type QueryFn } from "../claude/service.ts";
 import { ChatRegistry, type AgentKind, type SessionFactory } from "../agents/registry.ts";
-import { CLAUDE_PERMISSION_MODES, type SettingsStore } from "../settings/store.ts";
+import { CLAUDE_PERMISSION_MODES, CODEX_PERMISSION_MODES, type SettingsStore } from "../settings/store.ts";
 import { deleteSession, listSessions, readTranscript } from "../sessions/history.ts";
 import { AgySession } from "../agy/session.ts";
 import { listModels, resolveAgy } from "../agy/locate.ts";
+import { CodexSession } from "../codex/session.ts";
+import { isSupportedCodex, parseCodexVersion, resolveCodex } from "../codex/locate.ts";
+import { codexStatus, probeCodex, readCodexVersion } from "../codex/status.ts";
+import { execFileSync } from "node:child_process";
 import type { ClaudeUsage } from "../../shared/usage.ts";
 import { validateImages } from "../../shared/images.ts";
 import { isEffort } from "../../shared/effort.ts";
+import { agentDefaults } from "../../shared/agent-defaults.ts";
 import { attentionForApproval, attentionForEvent, type Attention, type AttentionContext } from "../agents/attention.ts";
 import { UsageProbe } from "../claude/usage-probe.ts";
 import { AutoContinue } from "../agents/auto-continue.ts";
@@ -51,6 +56,35 @@ export function locateAgy(): string | null {
 		});
 	}
 	return cachedAgy;
+}
+
+let cachedCodex: string | null | undefined;
+let cachedCodexVersion: string | null | undefined;
+
+/** Codex's native executable, or null when it is not installed. */
+export function locateCodex(): string | null {
+	if (cachedCodex === undefined) {
+		cachedCodex = resolveCodex({
+			platform: process.platform,
+			env: process.env,
+			home: homedir(),
+			pathEntries: (process.env["PATH"] ?? "").split(delimiter).filter(Boolean),
+			isFile,
+		});
+	}
+	return cachedCodex;
+}
+
+/** Codex's version, read once per run (a chat is refused on a protocol TeezOS does not speak). */
+function codexVersionOnce(codexPath: string): string | null {
+	if (cachedCodexVersion === undefined) {
+		try {
+			cachedCodexVersion = parseCodexVersion(execFileSync(codexPath, ["--version"], { encoding: "utf8", timeout: 10_000, windowsHide: true }));
+		} catch {
+			cachedCodexVersion = null;
+		}
+	}
+	return cachedCodexVersion;
 }
 
 /** Resolve Claude Code once per run; the answer cannot change mid-session. */
@@ -119,7 +153,25 @@ export function registerChatIpc(
 		});
 	};
 
-	const factories: Partial<Record<AgentKind, SessionFactory>> = { claude: claudeFactory, agy: agyFactory, ...extra };
+	const codexFactory: SessionFactory = (options, callbacks) => {
+		const codexPath = locateCodex();
+		if (!codexPath) return { error: "Codex was not found.", reason: "codex-not-found" };
+		const version = codexVersionOnce(codexPath);
+		if (!version || !isSupportedCodex(version)) return { error: `Codex ${version ?? "(unknown version)"} is not supported.`, reason: "codex-unsupported" };
+		return new CodexSession({
+			codexPath,
+			cwd: options.cwd,
+			model: options.model,
+			permission: options.permission,
+			effort: options.effort,
+			...(options.resume ? { resume: options.resume } : {}),
+			onEvent: callbacks.onEvent,
+			onApproval: callbacks.onApproval,
+			clientVersion: app.getVersion(),
+		});
+	};
+
+	const factories: Partial<Record<AgentKind, SessionFactory>> = { claude: claudeFactory, agy: agyFactory, codex: codexFactory, ...extra };
 
 	const factory: SessionFactory = (options, callbacks) => {
 		const chosen = factories[options.agent];
@@ -194,6 +246,8 @@ export function registerChatIpc(
 		if (isText(chatId)) autoContinue.cancel(chatId);
 	});
 
+	ipcMain.handle("agents:codex-status", () => codexStatus({ locate: locateCodex, version: readCodexVersion, probe: (codexPath) => probeCodex(codexPath) }));
+
 	ipcMain.handle("agents:agy-status", async () => {
 		const agyPath = locateAgy();
 		if (!agyPath) return { available: false, models: [] };
@@ -258,22 +312,15 @@ export function registerChatIpc(
 		const PERMISSIONS: Readonly<Record<AgentKind, readonly string[]>> = {
 			claude: CLAUDE_PERMISSION_MODES,
 			agy: ["ask", "plan", "accept-edits", "full-auto"],
+			codex: CODEX_PERMISSION_MODES,
 		};
 		const MODEL = /^[\w.:-]{0,80}$/;
 		const SESSION = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-		const agent: AgentKind = r["agent"] === "agy" ? "agy" : r["agent"] === "claude" ? "claude" : defaults.defaultAgent;
-		const model = isText(r["model"]) && MODEL.test(r["model"])
-			? r["model"]
-			: agent === "claude"
-				? defaults.claudeModel
-				: defaults.agyModel;
-		const permission = isText(r["permission"]) && PERMISSIONS[agent].includes(r["permission"])
-			? r["permission"]
-			: agent === "claude"
-				? defaults.claudePermission
-				: defaults.agyPermission;
-
-		const effort = isEffort(agent, r["effort"]) ? r["effort"] : agent === "claude" ? defaults.claudeEffort : defaults.agyEffort;
+		const agent: AgentKind = r["agent"] === "agy" || r["agent"] === "claude" || r["agent"] === "codex" ? r["agent"] : defaults.defaultAgent;
+		const fallback = agentDefaults(agent, defaults);
+		const model = isText(r["model"]) && MODEL.test(r["model"]) ? r["model"] : fallback.model;
+		const permission = isText(r["permission"]) && PERMISSIONS[agent].includes(r["permission"]) ? r["permission"] : fallback.permission;
+		const effort = isEffort(agent, r["effort"]) ? r["effort"] : fallback.effort;
 
 		return registry.create({
 			workspaceId: workspace.id,

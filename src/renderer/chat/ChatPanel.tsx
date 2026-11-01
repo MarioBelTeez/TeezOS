@@ -8,7 +8,7 @@ import type { PauseView } from "./reduce.ts";
 import { CardView, type CardActions } from "./Cards.tsx";
 import { useTerminals } from "../terminal/TerminalDock.tsx";
 import { revealPanel } from "../shell/dock-actions.ts";
-import { agentName } from "./agent-options.ts";
+import { AGENT_STYLE, agentName } from "./agent-options.ts";
 import { SCROLL_KEYS, isReaderScroll, stickAfterChatChange, stickAfterScroll } from "./scroll.ts";
 import { ChatTabs } from "./ChatTabs.tsx";
 import { Composer, type QuickPrompt } from "./Composer.tsx";
@@ -157,7 +157,7 @@ function ChatBody({ chat, workspace }: { readonly chat: Chat; readonly workspace
 			},
 			onLogin: () => {
 				revealPanel("terminal");
-				void useTerminals.getState().open(workspace.id, chat.agent === "agy" ? "agy" : "claude-login");
+				void useTerminals.getState().open(workspace.id, chat.agent === "agy" ? "agy" : chat.agent === "codex" ? "codex-login" : "claude-login");
 			},
 		}),
 		[approve, chat.chatId, chat.agent, workspace.id, workspace.path],
@@ -192,14 +192,14 @@ function ChatBody({ chat, workspace }: { readonly chat: Chat; readonly workspace
 					<div className="pt-12 text-center">
 						<p
 							className={`bg-linear-to-b from-text bg-clip-text font-display text-5xl tracking-wider text-transparent ${
-								chat.agent === "claude" ? "to-red-hot drop-shadow-[0_0_18px_rgb(232_0_45/0.35)]" : "to-violet drop-shadow-[0_0_18px_rgb(124_108_255/0.35)]"
+								AGENT_STYLE[chat.agent].heading
 							}`}
 						>
-							{chat.agent === "claude" ? "CLAUDE" : "ANTIGRAVITY"}
+							{AGENT_STYLE[chat.agent].title}
 						</p>
 						<p className="mt-2 font-mono text-[length:var(--chat-meta)] text-muted">
 							Runs in <span className="text-text">{workspace.name}</span>
-							{chat.agent === "claude" ? " with your skills, hooks and memory." : " on your Google quota."}
+							{AGENT_STYLE[chat.agent].tagline}
 						</p>
 						<p className="mt-1 font-mono text-[length:var(--chat-meta)] text-muted/70">Type @ to mention a file · Enter to send</p>
 					</div>
