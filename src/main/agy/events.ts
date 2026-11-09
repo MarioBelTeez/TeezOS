@@ -16,8 +16,15 @@ const isBag = (value: unknown): value is Bag => typeof value === "object" && val
 const str = (value: unknown, fallback = ""): string => (typeof value === "string" ? value : fallback);
 const num = (value: unknown): number => (typeof value === "number" && Number.isFinite(value) ? value : 0);
 
+export function agyContextWindow(model: string): number {
+	const id = model.toLowerCase();
+	if (id.includes("claude") || id.includes("gpt")) return 200_000;
+	return 1_000_000;
+}
+
 export class AgyEventConverter {
 	#conversationId = "";
+	#lastStepTokens = 0;
 	readonly #model: string;
 
 	constructor(options: { readonly model: string }) {
@@ -67,6 +74,9 @@ export class AgyEventConverter {
 		const state = str(step["state"]);
 
 		if (type === "agent_response") {
+			const usage = isBag(step["usage"]) ? step["usage"] : null;
+			const stepTokens = usage ? num(usage["total_tokens"]) : 0;
+			if (stepTokens > 0) this.#lastStepTokens = stepTokens;
 			const text = str(step["text_delta"]);
 			return text ? [{ kind: "text-delta", sessionId, text }] : [];
 		}
@@ -113,6 +123,9 @@ export class AgyEventConverter {
 			];
 		}
 
+		const usage = isBag(result["usage"]) ? result["usage"] : null;
+		const usedTokens = this.#lastStepTokens > 0 ? this.#lastStepTokens : usage ? num(usage["total_tokens"]) : 0;
+
 		const events: UiEvent[] = [
 			{
 				kind: "turn-end",
@@ -123,8 +136,7 @@ export class AgyEventConverter {
 				numTurns: num(result["num_turns"]),
 				// Antigravity runs on the Google account's quota, not per-token billing.
 				costUsd: 0,
-				// No token usage in agy's result to measure the context by.
-				context: null,
+				context: usedTokens > 0 ? { used: usedTokens, window: agyContextWindow(this.#model) } : null,
 			},
 		];
 

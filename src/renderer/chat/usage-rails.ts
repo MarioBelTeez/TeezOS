@@ -1,5 +1,5 @@
 import type { AgentKind } from "../../main/agents/registry.ts";
-import type { ClaudeUsage, UsageWindow } from "../../shared/usage.ts";
+import type { AgyUsage, ClaudeUsage, UsageWindow } from "../../shared/usage.ts";
 
 /**
  * The rails either side of the composer: Claude's 5-hour limit on the left,
@@ -77,6 +77,31 @@ export function limitRows(usage: ClaudeUsage): readonly LimitRow[] {
 	return usage.fiveHour ? [{ label: "5-hour", window: usage.fiveHour, size: "main" }] : [];
 }
 
+/**
+ * Antigravity plan limits for the left rail, tailored to the active model:
+ * - Gemini 4 Argon puts Argon Weekly first alongside Gemini 5-hour
+ * - Gemini Flash/Pro shows Gemini 5-hour, Gemini Weekly, plus Argon Weekly if present
+ * - Claude / GPT models inside Antigravity show 3P 5-hour and 3P Weekly
+ */
+export function agyLimitRows(usage: AgyUsage, model: string): readonly LimitRow[] {
+	const id = model.toLowerCase();
+	const rows: LimitRow[] = [];
+	if (id.includes("claude") || id.includes("gpt")) {
+		if (usage.thirdPartyFiveHour) rows.push({ label: "3P 5-hour", window: usage.thirdPartyFiveHour, size: "main" });
+		if (usage.thirdPartyWeekly) rows.push({ label: "3P Weekly", window: usage.thirdPartyWeekly, size: "main" });
+		return rows;
+	}
+	if (id.includes("argon")) {
+		if (usage.argonWeekly) rows.push({ label: "Argon wk", window: usage.argonWeekly, size: "main" });
+		if (usage.geminiFiveHour) rows.push({ label: "Gemini 5h", window: usage.geminiFiveHour, size: "main" });
+		return rows;
+	}
+	if (usage.geminiFiveHour) rows.push({ label: "Gemini 5h", window: usage.geminiFiveHour, size: "main" });
+	if (usage.geminiWeekly) rows.push({ label: "Gemini wk", window: usage.geminiWeekly, size: "main" });
+	if (usage.argonWeekly) rows.push({ label: "Argon wk", window: usage.argonWeekly, size: "main" });
+	return rows;
+}
+
 /** The weekly limit speaks up from this share. */
 export const WEEKLY_WARN_FROM_PCT = 75;
 
@@ -119,15 +144,17 @@ export function contextSummary(
 	totalCostUsd: number,
 	turns: number,
 ): ContextSummary | null {
-	if (agent !== "claude") return { kind: "unreported" };
-	if (!context || !(context.window > 0)) return null;
+	if (agent === "codex") return { kind: "unreported" };
+	if (!context || !(context.window > 0)) {
+		return agent === "agy" ? { kind: "unreported" } : null;
+	}
 	const pct = Math.min(100, Math.round((context.used / context.window) * 100));
 	return {
 		kind: "claude",
 		used: formatTokens(context.used),
 		window: formatTokens(context.window),
 		pct,
-		cost: `$${totalCostUsd.toFixed(2)}`,
+		cost: agent === "agy" ? "Quota" : `$${totalCostUsd.toFixed(2)}`,
 		turns: `${turns} ${turns === 1 ? "turn" : "turns"}`,
 		canCompact: pct >= COMPACT_FROM_PCT,
 	};

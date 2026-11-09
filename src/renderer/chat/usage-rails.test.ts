@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { RAIL_MAX_WIDTH, RAIL_MIN_SPACE, barTone, contextSummary, formatPct, formatResetsIn, formatTokens, limitRows, railLayout, weeklyShare, weeklyWarning } from "./usage-rails.ts";
-import type { ClaudeUsage } from "../../shared/usage.ts";
+import { RAIL_MAX_WIDTH, RAIL_MIN_SPACE, agyLimitRows, barTone, contextSummary, formatPct, formatResetsIn, formatTokens, limitRows, railLayout, weeklyShare, weeklyWarning } from "./usage-rails.ts";
+import type { AgyUsage, ClaudeUsage } from "../../shared/usage.ts";
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -165,9 +165,39 @@ describe("formatTokens / contextSummary", () => {
 		const s = contextSummary("claude", { used: 300000, window: 200000 }, 0, 2);
 		expect(s?.kind === "claude" && s.pct).toBe(100);
 	});
-	test("no context yet hides the rail; Gemini says not reported", () => {
+	test("no context yet hides the rail on Claude; Antigravity shows context when reported", () => {
 		expect(contextSummary("claude", null, 0, 0)).toBeNull();
 		expect(contextSummary("agy", null, 0, 0)).toEqual({ kind: "unreported" });
-		expect(contextSummary("agy", { used: 1, window: 2 }, 0, 0)).toEqual({ kind: "unreported" });
+		expect(contextSummary("agy", { used: 12957, window: 1_000_000 }, 0, 3)).toEqual({
+			kind: "claude",
+			used: "13.0k",
+			window: "1000k",
+			pct: 1,
+			cost: "Quota",
+			turns: "3 turns",
+			canCompact: false,
+		});
+	});
+});
+
+describe("agyLimitRows", () => {
+	const agySample: AgyUsage = {
+		geminiFiveHour: { pct: 2, resetsAt: null },
+		geminiWeekly: { pct: 1, resetsAt: null },
+		argonWeekly: { pct: 38, resetsAt: null },
+		thirdPartyFiveHour: { pct: 0, resetsAt: null },
+		thirdPartyWeekly: { pct: 0, resetsAt: null },
+	};
+
+	test("Gemini 4 Argon puts Argon weekly first alongside Gemini 5h", () => {
+		expect(agyLimitRows(agySample, "gemini-4-argon-high").map((r) => r.label)).toEqual(["Argon wk", "Gemini 5h"]);
+	});
+
+	test("Gemini Flash shows Gemini 5h, Gemini wk, and Argon wk", () => {
+		expect(agyLimitRows(agySample, "gemini-3.8-flash-high").map((r) => r.label)).toEqual(["Gemini 5h", "Gemini wk", "Argon wk"]);
+	});
+
+	test("Claude or GPT inside Antigravity shows 3P 5-hour and 3P Weekly", () => {
+		expect(agyLimitRows(agySample, "claude-opus-5-5-high").map((r) => r.label)).toEqual(["3P 5-hour", "3P Weekly"]);
 	});
 });

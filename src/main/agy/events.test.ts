@@ -34,7 +34,7 @@ describe("AgyEventConverter", () => {
 		expect(events[1]).toMatchObject({ kind: "tool-start", name: "view_file", toolUseId: "ad3c6521-3677-4761-b77a-7e57011a5563#2" });
 		expect(events[2]).toMatchObject({ kind: "tool-end", toolUseId: "ad3c6521-3677-4761-b77a-7e57011a5563#2", isError: false, content: "2 lines, 6 bytes" });
 		expect(events.filter((e) => e.kind === "text-delta").map((e) => (e.kind === "text-delta" ? e.text : "")).join("")).toBe("hello\n");
-		expect(events.at(-1)).toMatchObject({ kind: "turn-end", durationMs: 5068, costUsd: 0 });
+		expect(events.at(-1)).toMatchObject({ kind: "turn-end", durationMs: 5068, costUsd: 0, context: { used: 12957, window: 1_000_000 } });
 	});
 
 	test("a refused command: the tool fails with the reason, then the chat is told why", () => {

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { UsageWindow } from "../../shared/usage.ts";
 import { useUsage } from "../state/usage.ts";
 import type { Chat } from "../state/chats.ts";
-import { barTone, contextSummary, formatPct, formatResetsIn, limitRows, railLayout, weeklyWarning, type BarTone, type ContextSummary } from "./usage-rails.ts";
+import { agyLimitRows, barTone, contextSummary, formatPct, formatResetsIn, limitRows, railLayout, weeklyWarning, type BarTone, type ContextSummary } from "./usage-rails.ts";
 
 /**
  * The empty space either side of the composer on a wide window: Claude's plan
@@ -139,32 +139,39 @@ export function UsageRails({
 	readonly onCompact: () => void;
 }): React.JSX.Element | null {
 	const usage = useUsage((s) => s.usage);
+	const agyUsage = useUsage((s) => s.agyUsage);
 	const layout = useRailLayout(row, composer);
-	const now = useNow(usage !== null && layout !== null);
+	const now = useNow((usage !== null || agyUsage !== null) && layout !== null);
 	const agent = chat?.agent ?? "claude";
 	const model = chat?.model ?? "";
-	const rows = useMemo(() => (usage ? limitRows(usage) : []), [usage]);
-	const weekly = useMemo(() => (usage ? weeklyWarning(usage, agent, model) : null), [usage, agent, model]);
+	const gemini = agent === "agy";
+	const rows = useMemo(() => {
+		if (gemini && agyUsage) return agyLimitRows(agyUsage, model);
+		return usage ? limitRows(usage) : [];
+	}, [gemini, agyUsage, usage, model]);
+	const weekly = useMemo(() => {
+		if (gemini && agyUsage) return null;
+		return usage ? weeklyWarning(usage, agent, model) : null;
+	}, [gemini, agyUsage, usage, agent, model]);
 	const context = chat?.context ?? null;
 	const cost = chat?.totalCostUsd ?? 0;
 	const turns = chat?.turns ?? 0;
 	const summary = useMemo(() => (chat ? contextSummary(agent, context, cost, turns) : null), [chat, agent, context, cost, turns]);
 	if (!layout) return null;
 
-	const gemini = agent === "agy";
 	const offset = `calc(50% + ${layout.composerWidth / 2 + layout.gap}px)`;
 	const rail = "absolute top-3 flex flex-col gap-2 transition-opacity";
-	const dim = gemini ? "opacity-45" : "";
+	const dim = gemini && !agyUsage ? "opacity-45" : "";
 
 	return (
 		<>
 			{rows.length > 0 || weekly ? (
-				<aside className={`${rail} ${dim}`} style={{ right: offset, width: layout.width }} title="Claude plan usage">
+				<aside className={`${rail} ${dim}`} style={{ right: offset, width: layout.width }} title={gemini && agyUsage ? "Antigravity plan usage" : "Claude plan usage"}>
 					{rows.map((r) => (
 						<Meter key={r.label} label={r.label} window={r.window} now={now} size={r.size} />
 					))}
 					{weekly ? <p className="truncate font-mono text-[10.5px] text-amber">{weekly}</p> : null}
-					{gemini ? <p className="truncate font-mono text-[10px] text-muted/80">Gemini quota: not shown by Antigravity</p> : null}
+					{gemini && !agyUsage ? <p className="truncate font-mono text-[10px] text-muted/80">Antigravity quota: loading…</p> : null}
 				</aside>
 			) : null}
 			{summary ? (

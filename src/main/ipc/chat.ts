@@ -9,7 +9,7 @@ import { ChatRegistry, type AgentKind, type SessionFactory } from "../agents/reg
 import { CLAUDE_PERMISSION_MODES, CODEX_PERMISSION_MODES, type SettingsStore } from "../settings/store.ts";
 import { deleteSession, listSessions, readTranscript } from "../sessions/history.ts";
 import { AgySession } from "../agy/session.ts";
-import { listModels, resolveAgy } from "../agy/locate.ts";
+import { fetchAgyUsage, listModels, resolveAgy } from "../agy/locate.ts";
 import { CodexSession } from "../codex/session.ts";
 import { isSupportedCodex, parseCodexVersion, resolveCodex } from "../codex/locate.ts";
 import { codexStatus, probeCodex, readCodexVersion } from "../codex/status.ts";
@@ -265,6 +265,10 @@ export function registerChatIpc(
 	};
 	app.on("will-quit", () => probe?.dispose());
 	ipcMain.handle("usage:get", async () => (await registry.usage()) ?? (await probeUsage()));
+	ipcMain.handle("usage:agy-get", async () => {
+		const agyPath = locateAgy();
+		return agyPath ? fetchAgyUsage(agyPath) : null;
+	});
 
 	ipcMain.handle("claude:status", () => {
 		const located = locateClaude();

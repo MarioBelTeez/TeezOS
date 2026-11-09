@@ -126,8 +126,9 @@ function Shell(): React.JSX.Element {
 			// Only a Claude chat's limits are Claude's plan usage (Codex reports its own).
 			const usage = claudeUsageOf(event, useChats.getState().chats[envelope.chatId]?.agent);
 			if (usage) useAgents.getState().setUsage(usage);
-			// A Claude turn spends from the plan limits; a session starting is the first that can report them.
-			if ((event.kind === "turn-end" || event.kind === "session-ready") && useChats.getState().chats[envelope.chatId]?.agent === "claude") {
+			// A Claude or Antigravity turn spends from the plan limits; a session starting is the first that can report them.
+			const chatAgent = useChats.getState().chats[envelope.chatId]?.agent;
+			if ((event.kind === "turn-end" || event.kind === "session-ready") && (chatAgent === "claude" || chatAgent === "agy")) {
 				usageMayHaveChanged();
 			}
 			useChats.getState().handleEvent(envelope);

@@ -17,7 +17,7 @@ import type { FeedItem, FeedKind } from "../shared/feed.ts";
 import type { EngineId, EngineStatus, FeedPrefs } from "../shared/feed-engine.ts";
 import type { VaultSource } from "../shared/feed-history.ts";
 import type { ModelChoices } from "../main/ipc/feed.ts";
-import type { ClaudeUsage } from "../shared/usage.ts";
+import type { AgyUsage, ClaudeUsage } from "../shared/usage.ts";
 import type { DraftPreview, SkillResult } from "../main/feed/skills.ts";
 import type { HistoryItem, SessionSummary } from "../main/sessions/history.ts";
 import type { SessionDeleteResult } from "../main/ipc/chat.ts";
@@ -341,6 +341,8 @@ const teez = {
 			ipcRenderer.invoke("agents:codex-status"),
 		/** Claude's plan limits from an open Claude chat; null when none can say. */
 		usage: (): Promise<ClaudeUsage | null> => ipcRenderer.invoke("usage:get"),
+		/** Antigravity's plan limits from `agy -p "/usage" --output-format json`; null when unavailable. */
+		agyUsage: (): Promise<AgyUsage | null> => ipcRenderer.invoke("usage:agy-get"),
 	},
 	sessions: {
 		list: (workspaceId: string): Promise<SessionSummary[]> => ipcRenderer.invoke("sessions:list", workspaceId),

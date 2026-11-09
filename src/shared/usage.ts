@@ -70,3 +70,63 @@ export function normaliseUsage(raw: unknown): ClaudeUsage | null {
 	const any = usage.fiveHour || usage.weekly || usage.weeklyOpus || usage.weeklySonnet || usage.models.length > 0;
 	return any ? usage : null;
 }
+
+export type AgyUsage = {
+	readonly geminiFiveHour: UsageWindow | null;
+	readonly geminiWeekly: UsageWindow | null;
+	readonly argonWeekly: UsageWindow | null;
+	readonly thirdPartyFiveHour: UsageWindow | null;
+	readonly thirdPartyWeekly: UsageWindow | null;
+};
+
+function readRemainingWindow(bucket: unknown): UsageWindow | null {
+	if (!isBag(bucket)) return null;
+	const remaining = bucket["remaining_fraction"];
+	if (typeof remaining !== "number" || !Number.isFinite(remaining)) return null;
+	const usedPct = Math.min(100, Math.max(0, (1 - remaining) * 100));
+	return { pct: usedPct, resetsAt: readTime(bucket["reset_time"]) };
+}
+
+/**
+ * Parses `agy -p "/usage" --output-format json` into `AgyUsage`.
+ * Antigravity reports `remaining_fraction` (0..1); TeezOS bars show % used (0..100).
+ */
+export function normaliseAgyUsage(raw: unknown): AgyUsage | null {
+	if (!isBag(raw)) return null;
+	const command = isBag(raw["command"]) ? raw["command"] : null;
+	const data = command && isBag(command["data"]) ? command["data"] : null;
+	const groups = data && Array.isArray(data["groups"]) ? data["groups"] : null;
+	if (!groups) return null;
+
+	let geminiFiveHour: UsageWindow | null = null;
+	let geminiWeekly: UsageWindow | null = null;
+	let argonWeekly: UsageWindow | null = null;
+	let thirdPartyFiveHour: UsageWindow | null = null;
+	let thirdPartyWeekly: UsageWindow | null = null;
+
+	for (const group of groups) {
+		if (!isBag(group) || !Array.isArray(group["buckets"])) continue;
+		for (const bucket of group["buckets"]) {
+			if (!isBag(bucket)) continue;
+			const id = typeof bucket["id"] === "string" ? bucket["id"].toLowerCase() : "";
+			const win = readRemainingWindow(bucket);
+			if (!win) continue;
+			if (id === "gemini-5h") geminiFiveHour = win;
+			else if (id === "gemini-weekly") geminiWeekly = win;
+			else if (id.includes("argon")) argonWeekly = win;
+			else if (id === "3p-5h") thirdPartyFiveHour = win;
+			else if (id === "3p-weekly") thirdPartyWeekly = win;
+		}
+	}
+
+	const any = geminiFiveHour || geminiWeekly || argonWeekly || thirdPartyFiveHour || thirdPartyWeekly;
+	return any
+		? {
+				geminiFiveHour,
+				geminiWeekly,
+				argonWeekly,
+				thirdPartyFiveHour,
+				thirdPartyWeekly,
+		  }
+		: null;
+}

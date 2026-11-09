@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import path from "node:path";
+import { normaliseAgyUsage, type AgyUsage } from "../../shared/usage.ts";
 
 /**
  * Where Antigravity's CLI lives, and which models it offers.
@@ -50,9 +51,31 @@ let cached: Promise<AgyModel[]> | null = null;
 export function listModels(agyPath: string): Promise<AgyModel[]> {
 	cached ??= new Promise((resolve) => {
 		execFile(agyPath, ["models"], { timeout: 30_000, windowsHide: true, encoding: "utf8" }, (error, stdout) => {
-			if (error) cached = null; // try again next time rather than caching a failure
-			resolve(error ? [] : parseModels(stdout));
+			const models = error ? [] : parseModels(stdout);
+			if (error || models.length === 0) cached = null; // try again next time rather than caching a failure or an unauthenticated empty list
+			resolve(models);
 		});
 	});
 	return cached;
+}
+
+export function fetchAgyUsage(agyPath: string): Promise<AgyUsage | null> {
+	return new Promise((resolve) => {
+		execFile(
+			agyPath,
+			["-p", "/usage", "--output-format", "json"],
+			{ timeout: 20_000, windowsHide: true, encoding: "utf8" },
+			(error, stdout) => {
+				if (error || !stdout) {
+					resolve(null);
+					return;
+				}
+				try {
+					resolve(normaliseAgyUsage(JSON.parse(stdout.trim())));
+				} catch {
+					resolve(null);
+				}
+			},
+		);
+	});
 }
