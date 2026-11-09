@@ -26,8 +26,8 @@ export const DEFAULT_MODULES: Modules = {
 	feed: { enabled: true },
 	browser: { enabled: true, home: "https://duckduckgo.com", pins: [{ title: "BelTeez Mail", url: "https://privateemail.com" }] },
 	agents: { enabled: true },
-	server: { enabled: true },
-	automations: { enabled: true }
+	server: { enabled: false },
+	automations: { enabled: false }
 };
 
 /** Longest browser URL kept in settings (home page, pins). */
@@ -119,10 +119,10 @@ export function normalizeModules(raw: unknown, legacyHiddenViews: readonly strin
 			enabled: typeof agents["enabled"] === "boolean" ? agents["enabled"] : !legacyHiddenViews.includes("agents")
 		},
 		server: {
-			enabled: typeof server["enabled"] === "boolean" ? server["enabled"] : !legacyHiddenViews.includes("server")
+			enabled: typeof server["enabled"] === "boolean" ? server["enabled"] : DEFAULT_MODULES.server.enabled
 		},
 		automations: {
-			enabled: typeof automations["enabled"] === "boolean" ? automations["enabled"] : !legacyHiddenViews.includes("automations")
+			enabled: typeof automations["enabled"] === "boolean" ? automations["enabled"] : DEFAULT_MODULES.automations.enabled
 		}
 	};
 }

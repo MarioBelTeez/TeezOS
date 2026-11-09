@@ -19,6 +19,9 @@ export function registerSettingsIpc(
 		const p = patch as Record<string, unknown>;
 		return store.update((current): Settings => {
 			const next = { ...current } as Record<string, unknown>;
+			if (typeof p["onboardingCompleted"] === "boolean") {
+				next["onboardingCompleted"] = p["onboardingCompleted"];
+			}
 			if (typeof p["layout"] === "object" && p["layout"] !== null) {
 				next["layout"] = { ...current.layout, ...(p["layout"] as object) };
 			}

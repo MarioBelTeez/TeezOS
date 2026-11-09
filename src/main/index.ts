@@ -248,7 +248,7 @@ void app.whenReady().then(() => {
 	const chats = registerChatIpc(store, currentWindow, {}, presence);
 	const stopBtw = registerBtwIpc(store, chats, currentWindow);
 	const terminals = registerTerminalIpc(store, currentWindow);
-	registerBrainIpc(store);
+	registerBrainIpc(store, currentWindow);
 	const secrets = new SecretStore(join(app.getPath("userData"), "secrets.json"));
 	const stopServer = registerServerIpc(store, secrets, currentWindow);
 	const stopAutomations = registerAutomationsIpc(store, secrets, currentWindow);

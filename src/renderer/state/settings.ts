@@ -16,6 +16,7 @@ type SettingsState = {
 	readonly setAgent: (patch: Partial<AgentSettings>) => void;
 	readonly setModules: (patch: ModulesPatch) => void;
 	readonly setPresets: (presets: readonly Preset[]) => void;
+	readonly setOnboardingCompleted: (onboardingCompleted: boolean) => void;
 };
 
 let pendingLayout: Partial<LayoutSettings> = {};
@@ -65,6 +66,13 @@ export const useSettings = create<SettingsState>((set, get) => ({
 		if (!current) return;
 		set({ settings: { ...current, presets } });
 		void window.teez.settings.update({ presets });
+	},
+
+	setOnboardingCompleted: (onboardingCompleted) => {
+		const current = get().settings;
+		if (!current) return;
+		set({ settings: { ...current, onboardingCompleted } });
+		void window.teez.settings.update({ onboardingCompleted });
 	},
 }));
 

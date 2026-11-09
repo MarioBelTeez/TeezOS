@@ -109,9 +109,12 @@ describe("normalizeSettings", () => {
 		expect(settings.agent.claudePermission).toBe("auto");
 	});
 
-	test("0.3.0 fields: modules, presets, new defaults", () => {
+	test("0.3.0 fields: modules, presets, new defaults, onboardingCompleted", () => {
 		const s = normalizeSettings({ layout: { hiddenViews: ["server"] } });
 		expect(s.modules.server.enabled).toBe(false);
+		expect(s.modules.automations.enabled).toBe(false);
+		expect(s.onboardingCompleted).toBe(false);
+		expect(normalizeSettings({ onboardingCompleted: true }).onboardingCompleted).toBe(true);
 		expect(s.presets).toEqual([]);
 		expect(normalizeSettings({}).agent.claudePermission).toBe("auto");
 		expect(normalizeSettings({ agent: { claudePermission: "default" } }).agent.claudePermission).toBe("default");

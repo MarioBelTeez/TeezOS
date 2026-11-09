@@ -101,6 +101,7 @@ export type RunnerSettings = {
 
 export type Settings = {
 	readonly version: 1;
+	readonly onboardingCompleted: boolean;
 	readonly workspaces: readonly Workspace[];
 	readonly activeWorkspaceId: string | null;
 	readonly vaultPath: string | null;
@@ -114,6 +115,7 @@ export type Settings = {
 
 export const DEFAULT_SETTINGS: Settings = {
 	version: 1,
+	onboardingCompleted: false,
 	workspaces: [],
 	activeWorkspaceId: null,
 	vaultPath: null,
@@ -204,6 +206,7 @@ export function normalizeSettings(raw: unknown): Settings {
 
 	return {
 		version: 1,
+		onboardingCompleted: bool(raw["onboardingCompleted"], d.onboardingCompleted),
 		workspaces,
 		activeWorkspaceId,
 		vaultPath: str(raw["vaultPath"]),

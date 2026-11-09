@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useSettings } from "../../state/settings.ts";
-import { Row, Section, Toggle } from "./controls.tsx";
+import { useUi } from "../../state/ui.ts";
+import { Button, Row, Section, Toggle } from "./controls.tsx";
 
-/** How TeezAI behaves as an app: notifications and starting with Windows. */
+/** How TeezAI behaves as an app: notifications, starting with Windows, and first-run setup/tutorial. */
 export function GeneralPage(): React.JSX.Element | null {
 	const notify = useSettings((s) => s.settings?.agent.notify ?? true);
 	const setAgent = useSettings((s) => s.setAgent);
@@ -26,6 +27,19 @@ export function GeneralPage(): React.JSX.Element | null {
 				) : (
 					<Toggle value={atLogin} label="Start with Windows" onChange={(on) => void window.teez.app.loginItem(on).then(setAtLogin)} />
 				)}
+			</Row>
+			<Row
+				label="Onboarding & tutorial"
+				hint="Set up a Starter Brain with preloaded skills, personalize Memories & North Star, or replay the interactive panel docking tutorial."
+			>
+				<Button
+					onClick={() => {
+						useUi.getState().setView("desk");
+						useUi.getState().setDialog("onboarding");
+					}}
+				>
+					Open setup &amp; tutorial…
+				</Button>
 			</Row>
 		</Section>
 	);

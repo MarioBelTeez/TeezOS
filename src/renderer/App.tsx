@@ -24,6 +24,7 @@ import { installUniversalMenu } from "./shell/install-universal-menu.ts";
 import { cycleDesk, newDesk, openWorkspace, revealPanel, showView, switchDesk, togglePanel } from "./shell/dock-actions.ts";
 import { Desk } from "./shell/Desk.tsx";
 import { SettingsView } from "./views/SettingsView.tsx";
+import { OnboardingModal } from "./onboarding/OnboardingModal.tsx";
 import { VIEW_IDS, VIEW_MODULE } from "../shared/views.ts";
 import { isModuleEnabled } from "../shared/modules.ts";
 import { isSettingsPage } from "./views/settings/nav.ts";
@@ -42,6 +43,11 @@ if (import.meta.env.DEV) {
 		const ui = useUi.getState();
 		// The capture sends no message, so no Claude session reports limits: show sample rails instead.
 		if (useUsage.getState().usage === null) useUsage.setState({ usage: sampleUsage(Date.now()) });
+		if (view === "onboarding") {
+			ui.setView("desk");
+			ui.setDialog("onboarding");
+			return;
+		}
 		if (view === "settings") {
 			ui.setView("settings");
 			return;
@@ -99,7 +105,15 @@ export function App(): React.JSX.Element {
 
 function Shell(): React.JSX.Element {
 	const view = useUi((s) => s.view);
+	const dialog = useUi((s) => s.dialog);
+	const onboardingCompleted = useSettings((s) => s.settings?.onboardingCompleted);
 	const [claude, setClaude] = useState<ClaudeStatus | null>(null);
+
+	useEffect(() => {
+		if (onboardingCompleted === false && useUi.getState().dialog === null) {
+			useUi.getState().setDialog("onboarding");
+		}
+	}, [onboardingCompleted]);
 
 	useEffect(() => {
 		void useSettings.getState().load();
@@ -275,6 +289,9 @@ function Shell(): React.JSX.Element {
 			<Palette />
 			<ContextMenu />
 			<Toasts />
+			{dialog === "onboarding" ? (
+				<OnboardingModal onClose={() => useUi.getState().setDialog(null)} />
+			) : null}
 		</div>
 	);
 }

@@ -6,11 +6,13 @@ describe("normalizeModules", () => {
 		expect(normalizeModules(null, [])).toEqual(DEFAULT_MODULES);
 		expect(normalizeModules("x", [])).toEqual(DEFAULT_MODULES);
 	});
-	test("a 0.2.6 file: hidden views become disabled modules", () => {
+	test("a 0.2.6 file: hidden views become disabled modules; server and automations are off by default", () => {
 		const m = normalizeModules(undefined, ["brain", "server"]);
 		expect(m.brain.enabled).toBe(false);
 		expect(m.server.enabled).toBe(false);
-		expect(m.automations.enabled).toBe(true);
+		expect(m.automations.enabled).toBe(false);
+		expect(DEFAULT_MODULES.server.enabled).toBe(false);
+		expect(DEFAULT_MODULES.automations.enabled).toBe(false);
 	});
 	test("explicit modules win over the legacy list", () => {
 		expect(normalizeModules({ brain: { enabled: true } }, ["brain"]).brain.enabled).toBe(true);

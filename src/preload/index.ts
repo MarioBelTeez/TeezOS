@@ -90,6 +90,7 @@ const teez = {
 	settings: {
 		get: (): Promise<Settings> => ipcRenderer.invoke("settings:get"),
 		update: (patch: {
+			readonly onboardingCompleted?: boolean;
 			readonly layout?: Partial<LayoutSettings>;
 			readonly agent?: Partial<AgentSettings>;
 			readonly modules?: ModulesPatch;
@@ -201,6 +202,24 @@ const teez = {
 		search: (query: string, deep: boolean): Promise<{ hits: BrainHit[]; engine: string }> =>
 			ipcRenderer.invoke("brain:search", query, deep),
 		openInObsidian: (path: string): Promise<void> => ipcRenderer.invoke("brain:open-in-obsidian", path),
+		defaultStarterPath: (): Promise<{ readonly path: string; readonly exists: boolean }> =>
+			ipcRenderer.invoke("brain:default-starter-path"),
+		pickExisting: (): Promise<{ readonly ok: true; readonly workspace: Workspace } | { readonly ok: false; readonly reason: string }> =>
+			ipcRenderer.invoke("brain:pick-existing"),
+		pickParentDir: (): Promise<string | null> => ipcRenderer.invoke("brain:pick-parent-dir"),
+		createStarter: (options: {
+			readonly targetDir?: string | undefined;
+			readonly userName?: string | undefined;
+			readonly goals?: readonly string[] | undefined;
+			readonly useCases?: readonly string[] | undefined;
+		}): Promise<{ readonly ok: true; readonly workspace: Workspace; readonly createdFiles: number } | { readonly ok: false; readonly reason: string }> =>
+			ipcRenderer.invoke("brain:create-starter", options),
+		personalizeStarter: (options: {
+			readonly userName?: string | undefined;
+			readonly goals?: readonly string[] | undefined;
+			readonly useCases?: readonly string[] | undefined;
+		}): Promise<{ readonly ok: boolean; readonly reason?: string }> =>
+			ipcRenderer.invoke("brain:personalize-starter", options),
 	},
 	server: {
 		/** A click on a server notification. */

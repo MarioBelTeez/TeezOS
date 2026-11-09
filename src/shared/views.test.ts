@@ -32,7 +32,8 @@ test("a disabled module's panels are not allowed; chat and editor always are", (
 	const modules = mergeModules(DEFAULT_MODULES, { server: { enabled: false }, terminal: { enabled: false } });
 	expect(panelEnabled("server", modules)).toBe(false);
 	expect(panelEnabled("terminal", modules)).toBe(false);
-	expect(panelEnabled("automations", modules)).toBe(true);
+	expect(panelEnabled("automations", modules)).toBe(false);
+	expect(panelEnabled("brain", modules)).toBe(true);
 	expect(panelEnabled("chat", modules)).toBe(true);
 	expect(panelEnabled("explorer", modules)).toBe(true);
 });
