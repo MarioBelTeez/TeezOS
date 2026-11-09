@@ -89,14 +89,23 @@ describe("createStarterBrain", () => {
 		expect(northStar).toContain("2. **Build a research vault for uni**");
 	});
 
-	test("preserves existing custom notes in an existing folder", () => {
+	test("preserves existing custom notes in an existing folder even when personalization is passed", () => {
 		const target = path.join(dir, "ExistingVault");
 		createStarterBrain({ targetDir: target, today: "2026-11-09" });
 		writeFileSync(path.join(target, "Home.md"), "# My Custom Home\n", "utf-8");
 		writeFileSync(path.join(target, "brain/Memories.md"), "# My Custom Memories\n", "utf-8");
+		writeFileSync(path.join(target, "brain/North Star.md"), "# My Custom North Star\n", "utf-8");
 
-		createStarterBrain({ targetDir: target, today: "2026-11-09" });
+		createStarterBrain({
+			targetDir: target,
+			userName: "NewName",
+			goals: ["Goal 1"],
+			useCases: ["Coding & Software Projects"],
+			today: "2026-11-09",
+		});
 		expect(readFileSync(path.join(target, "Home.md"), "utf-8")).toBe("# My Custom Home\n");
+		expect(readFileSync(path.join(target, "brain/Memories.md"), "utf-8")).toBe("# My Custom Memories\n");
+		expect(readFileSync(path.join(target, "brain/North Star.md"), "utf-8")).toBe("# My Custom North Star\n");
 
 		personalizeStarterBrain(target, { userName: "NewName", goals: ["Goal 1"] });
 		expect(readFileSync(path.join(target, "brain/Memories.md"), "utf-8")).toBe("# My Custom Memories\n");

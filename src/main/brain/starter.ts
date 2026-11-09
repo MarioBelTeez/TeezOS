@@ -707,7 +707,18 @@ export function createStarterBrain(options: StarterBrainOptions): StarterBrainRe
 			const absPath = path.join(resolved, relPath);
 			mkdirSync(path.dirname(absPath), { recursive: true });
 			const isPersonalNote = relPath === "brain/Memories.md" || relPath === "brain/North Star.md";
-			if (!existsSync(absPath) || (isPersonalNote && hasPersonalization)) {
+			const alreadyExists = existsSync(absPath);
+			const isStarterTemplate =
+				alreadyExists &&
+				isPersonalNote &&
+				(() => {
+					const existing = readFileSync(absPath, "utf-8");
+					return (
+						existing.includes("Initialized Starter Brain in TeezOS") ||
+						existing.includes("explore your Starter Brain, dock panels, and try Feed the Brain")
+					);
+				})();
+			if (!alreadyExists || (isStarterTemplate && hasPersonalization)) {
 				writeFileSync(absPath, content, "utf-8");
 				createdFiles += 1;
 			}

@@ -126,7 +126,9 @@ export function OnboardingModal({
 	);
 
 	// Step 2: Brain setup state
-	const [brainMode, setBrainMode] = useState<"starter" | "existing">("starter");
+	const [brainMode, setBrainMode] = useState<"starter" | "existing">(
+		settings?.vaultPath ? "existing" : "starter",
+	);
 	const [starterDir, setStarterDir] = useState<string>("");
 	const [starterExists, setStarterExists] = useState<boolean>(false);
 	const [brainReadyPath, setBrainReadyPath] = useState<string | null>(settings?.vaultPath ?? null);
@@ -141,6 +143,10 @@ export function OnboardingModal({
 		void window.teez.brain.defaultStarterPath().then((info) => {
 			setStarterDir(info.path);
 			setStarterExists(info.exists);
+			if (info.exists) {
+				setBrainMode("existing");
+				setBrainReadyPath((prev) => prev ?? info.path);
+			}
 		});
 	}, []);
 
