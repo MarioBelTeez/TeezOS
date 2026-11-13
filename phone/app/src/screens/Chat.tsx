@@ -3,7 +3,6 @@ import { addUserMessage } from "../../../../src/renderer/chat/reduce.ts";
 import { postJson, type ApiResult } from "../api.ts";
 import type { ChatSummary, Engine } from "../chat-stream.ts";
 import { Composer, DEFAULT_EFFORT } from "../chat/Composer.tsx";
-import { Drawer } from "../chat/Drawer.tsx";
 import { Messages } from "../chat/Messages.tsx";
 import { useChat } from "../chat/useChat.ts";
 import { useResource } from "../components/hooks.ts";
@@ -30,7 +29,6 @@ export function Chat({ active, routeId, onRoute }: Props): ReactNode {
 	const [text, setText] = useState(draft.text());
 	const [sending, setSending] = useState(false);
 	const [failure, setFailure] = useState<Failure | null>(null);
-	const [drawer, setDrawer] = useState(false);
 	const [actionsFor, setActionsFor] = useState<string | null>(null);
 	const [toast, setToast] = useState<string | null>(null);
 	const [engine, setEngine] = useState<Engine>("agy");
@@ -43,7 +41,6 @@ export function Chat({ active, routeId, onRoute }: Props): ReactNode {
 		setPicked(true);
 		setChatId(id);
 		onRoute(id);
-		setDrawer(false);
 	};
 
 	// A notification opened a chat.
@@ -69,8 +66,8 @@ export function Chat({ active, routeId, onRoute }: Props): ReactNode {
 	}, [meta, locked]);
 
 	useEffect(() => {
-		if (active && !drawer) input.current?.focus();
-	}, [active, drawer, chatId]);
+		if (active) input.current?.focus();
+	}, [active, chatId]);
 
 	useEffect(() => {
 		if (!toast) return;
@@ -144,15 +141,12 @@ export function Chat({ active, routeId, onRoute }: Props): ReactNode {
 		<section className="flex h-full flex-col">
 			<ScreenHeader
 				title={title}
-				left={
-					<IconButton label="Chats" onClick={() => setDrawer(true)}>
-						☰
-					</IconButton>
-				}
 				right={
-					<IconButton label="New chat" onClick={() => select(null)}>
-						New
-					</IconButton>
+					locked ? (
+						<IconButton label="Clear chat" onClick={() => select(null)}>
+							Clear
+						</IconButton>
+					) : undefined
 				}
 			/>
 			<div className="scroll-y safe-x min-h-0 flex-1">
@@ -189,14 +183,13 @@ export function Chat({ active, routeId, onRoute }: Props): ReactNode {
 				locked={locked}
 				claudeBlocked={claudeBlocked}
 			/>
-			{drawer ? <Drawer chats={chats.data ?? []} currentId={chatId} onPick={select} onNew={() => select(null)} onClose={() => setDrawer(false)} /> : null}
 			{actionsFor !== null ? (
 				<Sheet title="Message" onClose={() => setActionsFor(null)}>
 					<div className="flex flex-col gap-2">
-						<button type="button" className="btn-hot h-12 font-display text-[22px] tracking-wider" onClick={() => void save(actionsFor)}>
+						<button type="button" className="btn-hot h-12 rounded-xl font-display text-[22px] tracking-wider" onClick={() => void save(actionsFor)}>
 							Save to brain
 						</button>
-						<button type="button" className="h-12 border border-border font-display text-[22px] tracking-wider" onClick={() => void copy(actionsFor)}>
+						<button type="button" className="h-12 rounded-xl border border-border font-display text-[22px] tracking-wider" onClick={() => void copy(actionsFor)}>
 							Copy
 						</button>
 					</div>

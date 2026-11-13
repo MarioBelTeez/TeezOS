@@ -14,7 +14,7 @@ type OpenChat = {
 
 export type SessionOwners = { readonly busy: boolean; readonly idle: readonly string[] };
 
-export function sessionOwners(chats: readonly OpenChat[], workspaceId: string, sessionId: string): SessionOwners {
-	const owners = chats.filter((c) => c.workspaceId === workspaceId && c.agent === "claude" && c.sessionId !== "" && c.sessionId === sessionId);
+export function sessionOwners(chats: readonly OpenChat[], workspaceId: string, sessionId: string, agent = "claude"): SessionOwners {
+	const owners = chats.filter((c) => c.workspaceId === workspaceId && c.agent === agent && c.sessionId !== "" && c.sessionId === sessionId);
 	return { busy: owners.some((c) => c.running), idle: owners.filter((c) => !c.running).map((c) => c.chatId) };
 }

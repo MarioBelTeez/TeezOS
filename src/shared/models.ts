@@ -19,8 +19,8 @@ export const CLAUDE_CHOICES: readonly ModelChoice[] = [
 	{ id: "sonnet", label: "Sonnet 5.5", agent: "claude" },
 ];
 
-const LEVEL_SUFFIX = /-(?:low|medium|high)$/;
-const LEVEL_LABEL = /\s*\((?:low|medium|high)\)$/i;
+const LEVEL_SUFFIX = /-(?:low|medium|high|thinking)$/;
+const LEVEL_LABEL = /\s*\((?:low|medium|high|thinking)\)$/i;
 
 /** "gemini-3.8-flash-high" → "gemini-3.8-flash"; an id without a level is its own family. */
 export function geminiFamily(id: string): string {
@@ -28,14 +28,13 @@ export function geminiFamily(id: string): string {
 }
 
 /**
- * One choice per Gemini family Antigravity lists, in its order (it lists the
- * newest first). Its Claude and GPT entries are left out: Claude runs through
- * Claude Code here.
+ * One choice per Gemini and Claude family Antigravity lists, in its order (it lists the
+ * newest first).
  */
 export function geminiChoices(available: readonly ListedModel[]): ModelChoice[] {
 	const choices: ModelChoice[] = [];
 	for (const model of available) {
-		if (!model.id.startsWith("gemini-")) continue;
+		if (!model.id.startsWith("gemini-") && !model.id.startsWith("claude-")) continue;
 		const id = geminiFamily(model.id);
 		if (choices.some((c) => c.id === id)) continue;
 		choices.push({ id, label: model.label.replace(LEVEL_LABEL, ""), agent: "agy" });
@@ -99,7 +98,7 @@ export function withCurrentOption<T extends { readonly id: string; readonly labe
  * nothing changes: already that variant, a model without levels, or none listed.
  */
 export function geminiAtEffort(model: string, effort: Effort, available: readonly string[]): string | null {
-	if (!model.startsWith("gemini-")) return null;
+	if (!model || (!model.startsWith("gemini-") && !model.startsWith("claude-"))) return null;
 	const id = agyModelId(geminiFamily(model), effort, available);
 	return id && id !== model ? id : null;
 }

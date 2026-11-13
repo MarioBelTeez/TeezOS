@@ -28,7 +28,7 @@ export interface AgentSession {
 	readonly sessionId: string;
 	send(text: string, images?: readonly ChatImage[]): void;
 	stop(): Promise<void>;
-	respondToApproval(id: string, decision: ApprovalDecision): void;
+	respondToApproval(id: string, decision: ApprovalDecision, updatedInput?: Record<string, unknown>): void;
 	setModel(model: string): Promise<void>;
 	setPermissionMode(mode: string): Promise<void>;
 	/** How hard the agent thinks from the next request on (see shared/effort.ts). */
@@ -116,8 +116,8 @@ export class ChatRegistry {
 		return this.#chats.get(chatId)?.session.stop() ?? Promise.resolve();
 	}
 
-	approve(chatId: string, id: string, decision: ApprovalDecision): void {
-		this.#chats.get(chatId)?.session.respondToApproval(id, decision);
+	approve(chatId: string, id: string, decision: ApprovalDecision, updatedInput?: Record<string, unknown>): void {
+		this.#chats.get(chatId)?.session.respondToApproval(id, decision, updatedInput);
 	}
 
 	/** The chat's options follow the switch, so anything reading them later (a /btw) sees the model in use. */

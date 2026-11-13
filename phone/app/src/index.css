@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "katex/dist/katex.min.css";
 
 /*
  * TeezOS on the phone: the desktop's faces and tokens (src/renderer/index.css),
@@ -16,20 +17,21 @@
 @theme {
 	--color-red: #e8002d;
 	--color-red-hot: #ff1744;
-	--color-bg: #050307;
-	--color-surface: #0e0a0d;
-	--color-surface-2: #161015;
-	--color-muted: #958289;
-	--color-border: #2a1f24;
-	--color-text: #f5f0f2;
-	--color-glow: rgb(232 0 45 / 0.42);
-	--color-glass: rgb(14 10 13 / 0.72);
+	--color-bg: #09090c;
+	--color-surface: #121217;
+	--color-surface-2: #191920;
+	--color-muted: #9893a0;
+	--color-border: #26232c;
+	--color-text: #f3f1f5;
+	--color-glow: rgb(232 0 45 / 0.28);
+	--color-glass: rgb(14 14 19 / 0.84);
 	--color-violet: #7c6cff;
 	--color-amber: #f5a524;
 	--color-ok: #3ddc84;
 
 	--font-display: "Bebas Neue", "Arial Narrow", sans-serif;
 	--font-condensed: "Barlow Condensed", "Arial Narrow", sans-serif;
+	--font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
 	--font-mono: "DM Mono", ui-monospace, monospace;
 
 	--radius-cut: 14px;
@@ -93,11 +95,12 @@ body {
 
 .btn-hot {
 	background: linear-gradient(135deg, var(--color-red), var(--color-red-hot));
-	box-shadow: 0 4px 18px var(--color-glow);
+	box-shadow: 0 4px 14px var(--color-glow);
+	border-radius: 12px;
 	color: #fff;
 }
 .btn-hot:active {
-	filter: brightness(1.15);
+	filter: brightness(1.12);
 }
 .btn-hot:disabled {
 	filter: grayscale(0.7) brightness(0.6);
@@ -105,7 +108,7 @@ body {
 }
 
 .cut-corner {
-	clip-path: polygon(var(--radius-cut) 0, 100% 0, 100% calc(100% - var(--radius-cut)), calc(100% - var(--radius-cut)) 100%, 0 100%, 0 var(--radius-cut));
+	border-radius: var(--radius-cut);
 }
 
 /* 16px or more: iOS zooms the page into any smaller field. */
@@ -114,11 +117,11 @@ body {
 	width: 100%;
 	background: var(--color-surface);
 	color: var(--color-text);
-	padding: 0.6rem 0.75rem;
-	font-size: 17px;
-	font-family: var(--font-condensed);
-	outline: none;
-	border-radius: 0;
+	padding: 0.65rem 0.85rem;
+	font-size: 16px;
+	line-height: 1.45;
+	font-family: var(--font-sans);
+	border-radius: 12px;
 	box-shadow: inset 0 0 0 1px var(--color-border);
 	-webkit-appearance: none;
 	appearance: none;
@@ -206,13 +209,19 @@ progress.meter.warn::-moz-progress-bar {
 	overscroll-behavior: contain;
 }
 
-/* Replies are markdown (the desktop's prose, sized for a phone). */
+/* Replies are markdown (sized for comfortable mobile reading on OLED). */
 .prose-teez {
-	font-family: var(--font-condensed);
-	font-size: 17px;
-	line-height: 1.5;
+	font-family: var(--font-sans);
+	font-size: 16px;
+	line-height: 1.6;
 	color: var(--color-text);
 	overflow-wrap: anywhere;
+}
+.prose-teez .katex-display {
+	margin: 0.7em 0;
+	padding: 0.25em 0;
+	overflow-x: auto;
+	overflow-y: hidden;
 }
 .prose-teez > :first-child {
 	margin-top: 0;

@@ -3,6 +3,7 @@ import { Pause } from "lucide-react";
 import type { Workspace } from "../../main/settings/store.ts";
 import { useChats, type Chat } from "../state/chats.ts";
 import { useSettings } from "../state/settings.ts";
+import { useUi } from "../state/ui.ts";
 import { useEditor } from "../state/editor.ts";
 import type { PauseView } from "./reduce.ts";
 import { CardView, type CardActions } from "./Cards.tsx";
@@ -142,7 +143,8 @@ function ChatBody({ chat, workspace }: { readonly chat: Chat; readonly workspace
 
 	const actions = useMemo<CardActions>(
 		() => ({
-			onApprove: (requestId, decision) => approve(chat.chatId, requestId, decision),
+			onApprove: (requestId, decision, updatedInput) => approve(chat.chatId, requestId, decision, updatedInput),
+			onSend: (text) => useChats.getState().send(chat.chatId, text),
 			onOpenFile: (path) => {
 				const normal = path.replace(/\\/g, "/");
 				const root = workspace.path.replace(/\\/g, "/").toLowerCase();
@@ -156,8 +158,17 @@ function ChatBody({ chat, workspace }: { readonly chat: Chat; readonly workspace
 				if (last && last.kind === "user") useChats.getState().send(chat.chatId, last.text);
 			},
 			onLogin: () => {
-				revealPanel("terminal");
-				void useTerminals.getState().open(workspace.id, chat.agent === "agy" ? "agy" : chat.agent === "codex" ? "codex-login" : "claude-login");
+				void (async () => {
+					useUi.getState().toast("Opening browser sign-in…", "info");
+					const res = await window.teez.agents.login(chat.agent);
+					if (res.ok) {
+						useUi.getState().toast("Signed in! Send your message again.", "success");
+						return;
+					}
+					useUi.getState().toast(res.error ?? "Browser sign-in failed — opening terminal fallback.", "error");
+					revealPanel("terminal");
+					void useTerminals.getState().open(workspace.id, chat.agent === "agy" ? "agy" : chat.agent === "codex" ? "codex-login" : "claude-login");
+				})();
 			},
 		}),
 		[approve, chat.chatId, chat.agent, workspace.id, workspace.path],

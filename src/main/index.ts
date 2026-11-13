@@ -23,6 +23,7 @@ import { LEGACY_LOGIN_ITEM, dataDirFor } from "./data-dir.ts";
 import { BrowserManager } from "./browser/manager.ts";
 import { registerBrowserIpc } from "./ipc/browser.ts";
 import { registerFeedIpc } from "./ipc/feed.ts";
+import { registerAgentsIpc } from "./ipc/agents.ts";
 
 /** BelTeez `--bg`. Set on the window so startup never flashes white. */
 const BACKGROUND = "#08060A";
@@ -249,6 +250,7 @@ void app.whenReady().then(() => {
 	const stopBtw = registerBtwIpc(store, chats, currentWindow);
 	const terminals = registerTerminalIpc(store, currentWindow);
 	registerBrainIpc(store, currentWindow);
+	registerAgentsIpc();
 	const secrets = new SecretStore(join(app.getPath("userData"), "secrets.json"));
 	const stopServer = registerServerIpc(store, secrets, currentWindow);
 	const stopAutomations = registerAutomationsIpc(store, secrets, currentWindow);

@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import Markdown from "react-markdown";
 import { safeMarkdownUrl } from "../../shared/safe-url.ts";
+import { normalizeMathDelimiters } from "../../shared/math.ts";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import {
 	ArrowLeft,
 	ArrowRight,
@@ -311,7 +314,8 @@ function Reader(): React.JSX.Element {
 				</div>
 				<div className="prose-teez prose-note mt-6">
 					<Markdown
-						remarkPlugins={[remarkGfm, remarkObsidian]}
+						remarkPlugins={[remarkGfm, remarkMath, remarkObsidian]}
+						rehypePlugins={[rehypeKatex]}
 						urlTransform={urlTransform}
 						components={{
 							a: ({ href, children, className }) => {
@@ -350,7 +354,7 @@ function Reader(): React.JSX.Element {
 							},
 						}}
 					>
-						{note.body}
+						{normalizeMathDelimiters(note.body)}
 					</Markdown>
 				</div>
 			</article>

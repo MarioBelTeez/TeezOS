@@ -1,12 +1,16 @@
 import { memo } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import { normalizeMathDelimiters } from "../../shared/math.ts";
 import { safeMarkdownUrl } from "../../shared/safe-url.ts";
 import { AlertTriangle, Check, CircleDot, Loader2, ShieldAlert, X } from "lucide-react";
 import type { Card, ToolStep } from "./reduce.ts";
 import { summarize } from "./summarize.ts";
 import { needsLogin } from "./agent-options.ts";
 import { browserEnabled, openInBrowser } from "../browser/open.ts";
+import { parseQuestionInput, QuestionCard } from "./QuestionCard.tsx";
 
 /**
  * How each card looks. Replies render as markdown (tables, code, links);
@@ -58,7 +62,8 @@ export const MarkdownText = memo(function MarkdownText({ text }: { readonly text
 	return (
 		<div className="prose-teez">
 			<Markdown
-				remarkPlugins={[remarkGfm]}
+				remarkPlugins={[remarkGfm, remarkMath]}
+				rehypePlugins={[rehypeKatex]}
 				urlTransform={safeMarkdownUrl}
 				components={{
 					a: ({ href, children }) => (
@@ -68,7 +73,7 @@ export const MarkdownText = memo(function MarkdownText({ text }: { readonly text
 					),
 				}}
 			>
-				{text}
+				{normalizeMathDelimiters(text)}
 			</Markdown>
 		</div>
 	);
@@ -133,10 +138,11 @@ function SubagentSteps({ summary, steps }: { readonly summary: string; readonly 
 }
 
 export type CardActions = {
-	readonly onApprove: (requestId: string, decision: "allow" | "deny") => void;
+	readonly onApprove: (requestId: string, decision: "allow" | "deny", updatedInput?: Record<string, unknown>) => void;
 	readonly onOpenFile: (path: string) => void;
 	readonly onRetry: () => void;
 	readonly onLogin: () => void;
+	readonly onSend?: (text: string) => void;
 };
 
 export const CardView = memo(function CardView({
@@ -177,6 +183,24 @@ export const CardView = memo(function CardView({
 			);
 
 		case "tool": {
+			if (card.name === "AskUserQuestion" || card.name === "ask_question") {
+				const questions = parseQuestionInput(card.input);
+				if (questions.length > 0) {
+					return (
+						<QuestionCard
+							questions={questions}
+							agentName={agentName}
+							settledText={card.status === "done" && card.result ? card.result : undefined}
+							onSubmit={(answers) => {
+								const formatted = Object.entries(answers)
+									.map(([q, a]) => `${q}\n→ ${a}`)
+									.join("\n\n");
+								actions.onSend?.(formatted);
+							}}
+						/>
+					);
+				}
+			}
 			const path = typeof card.input["file_path"] === "string" ? card.input["file_path"] : null;
 			const isEdit = /^(Edit|MultiEdit|Write|replace_file_content|write_to_file|multi_replace_file_content)$/.test(card.name);
 			return (
@@ -214,7 +238,29 @@ export const CardView = memo(function CardView({
 			);
 		}
 
-		case "approval":
+		case "approval": {
+			if (card.toolName === "AskUserQuestion" || card.toolName === "ask_question") {
+				const questions = parseQuestionInput(card.input);
+				if (questions.length > 0) {
+					const settled =
+						card.decision === "pending"
+							? undefined
+							: card.decision === "allow"
+								? "answered"
+								: card.decision === "deny"
+									? "dismissed"
+									: "expired — the run ended first";
+					return (
+						<QuestionCard
+							questions={questions}
+							agentName={agentName}
+							settledText={settled}
+							onSubmit={(answers) => onApprove(card.requestId, "allow", { ...card.input, answers })}
+							onSkip={card.decision === "pending" ? () => onApprove(card.requestId, "deny") : undefined}
+						/>
+					);
+				}
+			}
 			return (
 				<div className="cut-corner bg-surface p-3 ring-1 ring-red/50">
 					<p className="flex items-center gap-2 font-condensed text-sm uppercase tracking-wider">
@@ -247,6 +293,7 @@ export const CardView = memo(function CardView({
 					)}
 				</div>
 			);
+		}
 
 		case "cancelled":
 			// You asked it to stop; that is not a failure, so it does not get
@@ -275,14 +322,14 @@ export const CardView = memo(function CardView({
 
 /** What an error means and what to do, rather than just its code. */
 const HELP: Readonly<Record<string, string>> = {
-	"claude-not-found": "Claude Code is not installed where TeezOS looks. Install it, or open the terminal and run `claude` once.",
-	"agy-not-found": "Antigravity's CLI was not found. Install it from antigravity.google, then reopen TeezOS.",
-	"codex-not-found": "Codex isn't installed where TeezOS looks. Install it with `npm i -g @openai/codex`, run `codex login` once, then reopen TeezOS.",
-	"codex-logged-out": "Codex isn't logged in. Open the terminal, run `codex login` and sign in with your ChatGPT account.",
-	"codex-unsupported": "This Codex version isn't supported yet. TeezOS works with Codex 0.166.x. Update TeezOS, or install that Codex version (`npm i -g @openai/codex@0.166`).",
-	"codex-start": "Codex couldn't start this chat. If you haven't yet, run `codex login` in the terminal, then send the message again.",
+	"claude-not-found": "Claude Code is not installed yet. Open Settings → Setup & Tutorial to install it in one click.",
+	"agy-not-found": "Antigravity was not found. Install it from antigravity.google, then reopen TeezOS.",
+	"codex-not-found": "ChatGPT Codex is not installed yet. Open Settings → Setup & Tutorial to install it in one click.",
+	"codex-logged-out": "ChatGPT Codex is signed out. Click Sign in below to connect your ChatGPT account in your browser.",
+	"codex-unsupported": "This Codex version isn't supported yet. TeezOS works with Codex 0.166.x — update TeezOS or reinstall from Setup.",
+	"codex-start": "Codex couldn't start this chat. Click Sign in below if you haven't connected your ChatGPT account yet, then retry.",
 	"codex-exited": "Codex stopped unexpectedly. Send your message again to continue the same conversation.",
-	authentication_failed: "Claude Code is logged out. Open the terminal (Ctrl+`) and run `claude` to log in.",
+	authentication_failed: "Claude is signed out. Click Sign in below to connect your Claude account in your browser.",
 	billing_error: "The account has a billing problem. Check it in claude.ai, then retry.",
 	rate_limit: "The usage limit was reached. It resets on its own; the meter shows when.",
 	overloaded: "The service is overloaded right now. Retry in a minute.",

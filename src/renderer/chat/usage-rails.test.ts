@@ -189,15 +189,54 @@ describe("agyLimitRows", () => {
 		thirdPartyWeekly: { pct: 0, resetsAt: null },
 	};
 
-	test("Gemini 4 Argon puts Argon weekly first alongside Gemini 5h", () => {
-		expect(agyLimitRows(agySample, "gemini-4-argon-high").map((r) => r.label)).toEqual(["Argon wk", "Gemini 5h"]);
+	test("Gemini 4 Argon puts Argon weekly and Gemini 5h first, keeping other buckets scrollable", () => {
+		expect(agyLimitRows(agySample, "gemini-4-argon-high").map((r) => r.label)).toEqual([
+			"Argon wk",
+			"Gemini 5h",
+			"Gemini wk",
+			"3P 5-hour",
+			"3P Weekly",
+		]);
 	});
 
-	test("Gemini Flash shows Gemini 5h, Gemini wk, and Argon wk", () => {
-		expect(agyLimitRows(agySample, "gemini-3.8-flash-high").map((r) => r.label)).toEqual(["Gemini 5h", "Gemini wk", "Argon wk"]);
+	test("Gemini Flash/Hydrogen shows Gemini 5h, Gemini wk, Argon wk first, then 3P buckets", () => {
+		expect(agyLimitRows(agySample, "gemini-3.8-flash-high").map((r) => r.label)).toEqual([
+			"Gemini 5h",
+			"Gemini wk",
+			"Argon wk",
+			"3P 5-hour",
+			"3P Weekly",
+		]);
 	});
 
-	test("Claude or GPT inside Antigravity shows 3P 5-hour and 3P Weekly", () => {
-		expect(agyLimitRows(agySample, "claude-opus-5-5-high").map((r) => r.label)).toEqual(["3P 5-hour", "3P Weekly"]);
+	test("Claude or GPT inside Antigravity puts 3P 5-hour and 3P Weekly first, then Gemini buckets", () => {
+		expect(agyLimitRows(agySample, "claude-opus-5-5-high").map((r) => r.label)).toEqual([
+			"3P 5-hour",
+			"3P Weekly",
+			"Gemini 5h",
+			"Gemini wk",
+			"Argon wk",
+		]);
+		expect(agyLimitRows(agySample, "claude-sonnet-5-5-medium").map((r) => r.label)).toEqual([
+			"3P 5-hour",
+			"3P Weekly",
+			"Gemini 5h",
+			"Gemini wk",
+			"Argon wk",
+		]);
+		expect(agyLimitRows(agySample, "opus").map((r) => r.label)).toEqual([
+			"3P 5-hour",
+			"3P Weekly",
+			"Gemini 5h",
+			"Gemini wk",
+			"Argon wk",
+		]);
+		expect(agyLimitRows(agySample, "sonnet").map((r) => r.label)).toEqual([
+			"3P 5-hour",
+			"3P Weekly",
+			"Gemini 5h",
+			"Gemini wk",
+			"Argon wk",
+		]);
 	});
 });

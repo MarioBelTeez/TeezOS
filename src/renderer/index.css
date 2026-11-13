@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "katex/dist/katex.min.css";
 
 /*
  * BelTeez's three faces, bundled rather than fetched: a desktop app has to
@@ -430,6 +431,15 @@ body {
 .prose-teez .callout-example,
 .prose-teez .callout-question {
 	--callout: #c586c0;
+}
+.prose-teez .katex-display {
+	margin: 0.7em 0;
+	padding: 0.25em 0;
+	overflow-x: auto;
+	overflow-y: hidden;
+}
+.prose-teez .katex {
+	font-size: 1.05em;
 }
 
 /* Form fields (job editor, settings). */

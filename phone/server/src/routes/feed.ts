@@ -59,17 +59,18 @@ function writeQueue(file: string, items: readonly FeedItem[]): void {
 	}
 }
 
-type Request = { source: string; kind: FeedKind; text: string | null };
+type Request = { source: string; kind: FeedKind; text: string | null; note: string };
 
 function parseRequest(body: unknown): Request {
-	const { url, text, kind = "auto" } = record(body);
+	const { url, text, kind = "auto", note = "" } = record(body);
 	if ((url === undefined) === (text === undefined)) throw new HttpError(400, "send exactly one of url or text");
 	if (!isFeedKind(kind)) throw new HttpError(400, "unknown kind");
+	const cleanNote = typeof note === "string" ? note.trim().slice(0, 2000) : "";
 	if (text !== undefined) {
 		const clean = typeof text === "string" ? text.trim() : "";
 		if (clean.length === 0) throw new HttpError(400, "text is required");
 		if (clean.length > MAX_TEXT_CHARS) throw new HttpError(400, `text is over ${MAX_TEXT_CHARS} characters`);
-		return { source: `${TEXT_SOURCE_PREFIX}${createHash("sha256").update(clean).digest("hex").slice(0, 16)}`, kind, text: clean };
+		return { source: `${TEXT_SOURCE_PREFIX}${createHash("sha256").update(clean).digest("hex").slice(0, 16)}`, kind, text: clean, note: cleanNote };
 	}
 	if (typeof url !== "string" || url.length === 0 || url.length > MAX_FEED_SOURCE) throw new HttpError(400, `url must be at most ${MAX_FEED_SOURCE} characters`);
 	let parsed: URL;
@@ -79,7 +80,7 @@ function parseRequest(body: unknown): Request {
 		throw new HttpError(400, "url is not a valid link");
 	}
 	if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new HttpError(400, "url must be http or https");
-	return { source: parsed.href, kind, text: null };
+	return { source: parsed.href, kind, text: null, note: cleanNote };
 }
 
 const summary = (item: FeedItem) => ({
@@ -145,7 +146,8 @@ export function feedRoute(deps: FeedRouteDeps): Route {
 		if (req.method !== "POST") return { status: 405, body: { error: "method not allowed" } };
 		const request = parseRequest(await readJsonBody(req));
 		if (request.text !== null) texts.set(request.source, request.text);
-		const added = runner.add(request.source, request.kind, request.text === null ? "" : "Shared as text from the phone.");
+		const note = request.note || (request.text === null ? "" : "Shared as text from the phone.");
+		const added = runner.add(request.source, request.kind, note);
 		if (!("id" in added)) throw new HttpError(added.error === "That is already in the queue." ? 409 : 400, added.error);
 		return { status: 202, body: { id: added.id } };
 	};

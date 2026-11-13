@@ -51,19 +51,35 @@ describe("geminiFamily", () => {
 
 describe("geminiChoices", () => {
 	test("groups the effort variants into one choice per family", () => {
-		expect(geminiChoices(LISTED)).toEqual([{ id: "gemini-3.8-flash", label: "Gemini 3.8 Flash", agent: "agy" }]);
+		expect(geminiChoices(LISTED)).toEqual([
+			{ id: "gemini-3.8-flash", label: "Gemini 3.8 Flash", agent: "agy" },
+			{ id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", agent: "agy" },
+			{ id: "claude-opus-4-6", label: "Claude Opus 4.6", agent: "agy" },
+		]);
 	});
 
-	test("ignores everything that is not gemini-*", () => {
+	test("ignores everything that is not gemini-* or claude-*", () => {
 		const choices = geminiChoices([
 			{ id: "gpt-oss-120b-medium", label: "GPT-OSS 120B (Medium)" },
-			{ id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
+			{ id: "custom-model-low", label: "Custom Model (Low)" },
 		]);
 		expect(choices).toEqual([]);
 	});
 
+	test("includes Claude Sonnet and Opus families from Antigravity", () => {
+		const choices = geminiChoices([
+			{ id: "claude-opus-5-5-high", label: "Claude Opus 5.5 (High)" },
+			{ id: "claude-opus-5-5-medium", label: "Claude Opus 5.5 (Medium)" },
+			{ id: "claude-sonnet-5-5-low", label: "Claude Sonnet 5.5 (Low)" },
+		]);
+		expect(choices).toEqual([
+			{ id: "claude-opus-5-5", label: "Claude Opus 5.5", agent: "agy" },
+			{ id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5", agent: "agy" },
+		]);
+	});
+
 	test("keeps Antigravity's order, so the newest it lists comes first", () => {
-		expect(ids(geminiChoices(WITH_ARGON))).toEqual(["gemini-argon-4", "gemini-3.8-flash"]);
+		expect(ids(geminiChoices(WITH_ARGON))).toEqual(["gemini-argon-4", "gemini-3.8-flash", "claude-sonnet-4-6", "claude-opus-4-6"]);
 	});
 
 	test("cleans the label of its thinking level, case-insensitively", () => {
@@ -81,8 +97,8 @@ describe("geminiChoices", () => {
 });
 
 describe("modelChoices", () => {
-	test("Claude first, then Gemini as Antigravity lists it", () => {
-		expect(ids(modelChoices(WITH_ARGON))).toEqual(["opus", "sonnet", "gemini-argon-4", "gemini-3.8-flash"]);
+	test("Claude first, then Gemini and Claude as Antigravity lists them", () => {
+		expect(ids(modelChoices(WITH_ARGON))).toEqual(["opus", "sonnet", "gemini-argon-4", "gemini-3.8-flash", "claude-sonnet-4-6", "claude-opus-4-6"]);
 	});
 });
 
@@ -163,10 +179,20 @@ describe("withCurrentOption", () => {
 });
 
 describe("geminiAtEffort", () => {
-	const available = ["gemini-3.8-flash-high", "gemini-3.8-flash-medium", "gemini-3.8-flash-low", "gemini-3.1-pro-high"];
+	const available = [
+		"gemini-3.8-flash-high",
+		"gemini-3.8-flash-medium",
+		"gemini-3.8-flash-low",
+		"gemini-3.1-pro-high",
+		"claude-opus-5-5-high",
+		"claude-opus-5-5-medium",
+		"claude-opus-5-5-low",
+	];
 	test("the same family at the new level", () => {
 		expect(geminiAtEffort("gemini-3.8-flash-medium", "high", available)).toBe("gemini-3.8-flash-high");
 		expect(geminiAtEffort("gemini-3.8-flash-high", "low", available)).toBe("gemini-3.8-flash-low");
+		expect(geminiAtEffort("claude-opus-5-5-medium", "high", available)).toBe("claude-opus-5-5-high");
+		expect(geminiAtEffort("claude-opus-5-5-high", "low", available)).toBe("claude-opus-5-5-low");
 	});
 	test("the nearest level when that one is missing; null when nothing would change", () => {
 		expect(geminiAtEffort("gemini-3.1-pro-high", "low", available)).toBeNull();

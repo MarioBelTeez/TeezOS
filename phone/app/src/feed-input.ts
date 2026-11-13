@@ -1,10 +1,16 @@
 import type { FeedKind, FeedStatus } from "../../../src/shared/feed.ts";
 
-/** A pasted link goes as `url`, anything else as `text`. */
-export function feedBody(input: string, kind: FeedKind): { url: string; kind: FeedKind } | { text: string; kind: FeedKind } {
+/** A pasted link goes as `url`, anything else as `text`. Optional `note` adds context. */
+export function feedBody(
+	input: string,
+	kind: FeedKind,
+	note = "",
+): { url: string; kind: FeedKind; note?: string } | { text: string; kind: FeedKind; note?: string } {
 	const value = input.trim();
-	if (/^https?:\/\/\S+$/i.test(value)) return { url: value, kind };
-	return { text: value, kind };
+	const cleanNote = note.trim();
+	const extra = cleanNote.length > 0 ? { note: cleanNote } : {};
+	if (/^https?:\/\/\S+$/i.test(value)) return { url: value, kind, ...extra };
+	return { text: value, kind, ...extra };
 }
 
 const WORKING: ReadonlySet<FeedStatus> = new Set<FeedStatus>(["queued", "reading", "writing"]);

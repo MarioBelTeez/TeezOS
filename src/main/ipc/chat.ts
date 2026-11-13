@@ -7,7 +7,8 @@ import { resolveClaudeBinary, type LocateResult } from "../claude/locator.ts";
 import { ClaudeSession, type QueryFn } from "../claude/service.ts";
 import { ChatRegistry, type AgentKind, type SessionFactory } from "../agents/registry.ts";
 import { CLAUDE_PERMISSION_MODES, CODEX_PERMISSION_MODES, type SettingsStore } from "../settings/store.ts";
-import { deleteSession, listSessions, readTranscript } from "../sessions/history.ts";
+import { deleteSession, listSessions, readTranscript, type SessionAgent } from "../sessions/history.ts";
+import { deleteAgySession, listAgySessions, readAgyTranscript } from "../sessions/agy-history.ts";
 import { AgySession } from "../agy/session.ts";
 import { fetchAgyUsage, listModels, resolveAgy } from "../agy/locate.ts";
 import { CodexSession } from "../codex/session.ts";
@@ -278,24 +279,41 @@ export function registerChatIpc(
 	});
 
 	const projectsRoot = join(homedir(), ".claude", "projects");
+	const agyRoot = join(homedir(), ".gemini", "antigravity-cli");
 
-	ipcMain.handle("sessions:list", (_event, workspaceId: unknown) => {
+	ipcMain.handle("sessions:list", async (_event, workspaceId: unknown) => {
 		const workspace = store.get().workspaces.find((w) => w.id === workspaceId);
-		return workspace ? listSessions(projectsRoot, workspace.path) : [];
+		if (!workspace) return [];
+		const [claude, agy] = await Promise.all([
+			listSessions(projectsRoot, workspace.path),
+			listAgySessions(agyRoot, workspace.path),
+		]);
+		return [...claude, ...agy].sort((a, b) => b.modified - a.modified);
 	});
 
-	ipcMain.handle("sessions:transcript", (_event, workspaceId: unknown, sessionId: unknown) => {
+	ipcMain.handle("sessions:transcript", async (_event, workspaceId: unknown, sessionId: unknown, agent?: unknown) => {
 		const workspace = store.get().workspaces.find((w) => w.id === workspaceId);
 		if (!workspace || !isText(sessionId)) return [];
-		return readTranscript(projectsRoot, workspace.path, sessionId);
+		if (agent === "agy") return readAgyTranscript(agyRoot, sessionId);
+		if (agent === "claude") return readTranscript(projectsRoot, workspace.path, sessionId);
+		const claude = await readTranscript(projectsRoot, workspace.path, sessionId);
+		return claude.length > 0 ? claude : readAgyTranscript(agyRoot, sessionId);
 	});
 
 	// To the Recycle Bin, never unlinked: a session deleted by mistake can be restored.
 	// A chat tab closed just before still has its Claude process letting go of
 	// the file (Windows refuses to move an open file), so a refusal is retried.
-	ipcMain.handle("sessions:delete", async (_event, workspaceId: unknown, sessionId: unknown): Promise<SessionDeleteResult> => {
+	ipcMain.handle("sessions:delete", async (_event, workspaceId: unknown, sessionId: unknown, agent?: unknown): Promise<SessionDeleteResult> => {
 		const workspace = store.get().workspaces.find((w) => w.id === workspaceId);
 		if (!workspace || !isText(sessionId)) return "missing";
+		const target: SessionAgent = agent === "agy" ? "agy" : "claude";
+		if (target === "agy") {
+			try {
+				return (await deleteAgySession(agyRoot, sessionId, (path) => shell.trashItem(path))) ? "deleted" : "missing";
+			} catch {
+				return "busy";
+			}
+		}
 		for (let attempt = 1; ; attempt += 1) {
 			try {
 				return (await deleteSession(projectsRoot, workspace.path, sessionId, (path) => shell.trashItem(path))) ? "deleted" : "missing";
@@ -360,10 +378,14 @@ export function registerChatIpc(
 		});
 	});
 
-	ipcMain.on("chat:approve", (_event, chatId: unknown, id: unknown, decision: unknown) => {
+	ipcMain.on("chat:approve", (_event, chatId: unknown, id: unknown, decision: unknown, updatedInput?: unknown) => {
 		if (!isText(chatId) || !isText(id)) return;
 		if (decision !== "allow" && decision !== "deny") return;
-		registry.approve(chatId, id, decision);
+		const parsedInput =
+			typeof updatedInput === "object" && updatedInput !== null && !Array.isArray(updatedInput)
+				? (updatedInput as Record<string, unknown>)
+				: undefined;
+		registry.approve(chatId, id, decision, parsedInput);
 		track(presence?.tracker.approved(chatId));
 	});
 

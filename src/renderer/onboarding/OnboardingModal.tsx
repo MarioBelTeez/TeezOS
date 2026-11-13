@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
 	BookOpen,
 	Bot,
@@ -7,14 +7,18 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Code2,
+	Download,
+	ExternalLink,
 	FolderOpen,
 	Globe,
+	RefreshCw,
 	Rss,
 	Server,
 	Sparkles,
 	Terminal,
 	X,
 } from "lucide-react";
+import type { ProviderId, ProviderState } from "../../main/agents/setup.ts";
 import { useSettings } from "../state/settings.ts";
 import { useBrain } from "../state/brain.ts";
 import { useUi } from "../state/ui.ts";
@@ -100,11 +104,40 @@ const MODULES_GUIDE = [
 
 const STEP_LABELS = [
 	"1. Use Case",
-	"2. Your Brain",
-	"3. Personalize",
-	"4. Panels & Desks",
-	"5. Modules Tour",
+	"2. Connect AI",
+	"3. Your Brain",
+	"4. Personalize",
+	"5. Panels & Desks",
+	"6. Modules Tour",
 ] as const;
+
+const AI_PROVIDERS: readonly {
+	readonly id: ProviderId;
+	readonly name: string;
+	readonly subtitle: string;
+	readonly installable: boolean;
+}[] = [
+	{
+		id: "claude",
+		name: "Claude (Anthropic)",
+		subtitle: "Uses your Claude Pro/Max subscription. Best all-rounder for coding & your Brain.",
+		installable: true,
+	},
+	{
+		id: "codex",
+		name: "ChatGPT · Codex (OpenAI)",
+		subtitle: "Uses your ChatGPT account (Plus/Pro or Free). Sign in directly in your browser.",
+		installable: true,
+	},
+	{
+		id: "agy",
+		name: "Gemini · Antigravity (Google)",
+		subtitle: "Uses your Google account for Gemini 4 Hydrogen/Argon & fast brain tasks.",
+		installable: false,
+	},
+];
+
+type StepIndex = 0 | 1 | 2 | 3 | 4 | 5;
 
 export function OnboardingModal({
 	onClose,
@@ -116,7 +149,11 @@ export function OnboardingModal({
 	const setOnboardingCompleted = useSettings((s) => s.setOnboardingCompleted);
 	const toast = useUi((s) => s.toast);
 
-	const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(0);
+	const [step, setStep] = useState<StepIndex>(0);
+	const [providers, setProviders] = useState<ProviderState[]>([]);
+	const [checkingProviders, setCheckingProviders] = useState<boolean>(false);
+	const [providerBusy, setProviderBusy] = useState<ProviderId | null>(null);
+	const [providerError, setProviderError] = useState<string | null>(null);
 	const [selectedUses, setSelectedUses] = useState<string[]>([
 		"Coding & Software Projects",
 		"Second Brain & Knowledge Graph",
@@ -138,6 +175,56 @@ export function OnboardingModal({
 	const [userName, setUserName] = useState<string>("");
 	const [goal1, setGoal1] = useState<string>("");
 	const [goal2, setGoal2] = useState<string>("");
+
+	const refreshProviders = useCallback(async () => {
+		setCheckingProviders(true);
+		try {
+			const next = await window.teez.agents.setupStatus();
+			setProviders(next);
+		} finally {
+			setCheckingProviders(false);
+		}
+	}, []);
+
+	useEffect(() => {
+		if (step === 1 && providers.length === 0) {
+			void refreshProviders();
+		}
+	}, [step, providers.length, refreshProviders]);
+
+	const handleProviderInstall = async (id: ProviderId): Promise<void> => {
+		setProviderBusy(id);
+		setProviderError(null);
+		try {
+			const res = await window.teez.agents.install(id);
+			if (!res.ok) {
+				setProviderError(res.error ?? "Install failed.");
+			} else if (id === "agy") {
+				toast("Opened antigravity.google — install it, then click Refresh.", "info");
+			} else {
+				toast("Installed! Now click Sign in with Browser.", "success");
+			}
+			await refreshProviders();
+		} finally {
+			setProviderBusy(null);
+		}
+	};
+
+	const handleProviderLogin = async (id: ProviderId): Promise<void> => {
+		setProviderBusy(id);
+		setProviderError(null);
+		try {
+			const res = await window.teez.agents.login(id);
+			if (res.ok) {
+				toast("Connected!", "success");
+			} else {
+				setProviderError(res.error ?? "Sign-in did not complete.");
+			}
+			await refreshProviders();
+		} finally {
+			setProviderBusy(null);
+		}
+	};
 
 	useEffect(() => {
 		void window.teez.brain.defaultStarterPath().then((info) => {
@@ -209,7 +296,7 @@ export function OnboardingModal({
 			await useSettings.getState().load();
 			void useBrain.getState().refresh();
 			toast(`Connected Brain: ${res.workspace.name}`, "success");
-			setStep(2);
+			setStep(3);
 		} finally {
 			setBusy(false);
 		}
@@ -218,11 +305,11 @@ export function OnboardingModal({
 	const handleStep2Continue = async (): Promise<void> => {
 		if (brainMode === "starter") {
 			const ok = await handleCreateStarterBrain();
-			if (ok) setStep(2);
+			if (ok) setStep(3);
 			return;
 		}
 		if (brainReadyPath) {
-			setStep(2);
+			setStep(3);
 			return;
 		}
 		await handlePickExistingBrain();
@@ -246,7 +333,7 @@ export function OnboardingModal({
 				setBusy(false);
 			}
 		}
-		setStep(3);
+		setStep(4);
 	};
 
 	const finishOnboarding = (): void => {
@@ -279,7 +366,7 @@ export function OnboardingModal({
 									<button
 										key={label}
 										type="button"
-										onClick={() => setStep(idx as 0 | 1 | 2 | 3 | 4)}
+										onClick={() => setStep(idx as StepIndex)}
 										className={`px-2.5 py-1 font-condensed text-xs uppercase tracking-wider transition-colors ${
 											active
 												? "border-b-2 border-red-hot bg-red/15 text-text"
@@ -386,9 +473,109 @@ export function OnboardingModal({
 
 					{step === 1 ? (
 						<div className="space-y-5">
+							<div className="flex items-start justify-between gap-4">
+								<div>
+									<p className="font-condensed text-xs uppercase tracking-[0.3em] text-red-hot">
+										Step 2 · Connect Your AI
+									</p>
+									<h2 className="glow-text mt-1 font-display text-4xl tracking-wide">
+										SIGN IN WITH YOUR SUBSCRIPTION
+									</h2>
+									<p className="mt-1 font-mono text-xs text-muted">
+										Connect at least one AI provider using your existing account — no terminal commands needed.
+									</p>
+								</div>
+								<button
+									type="button"
+									disabled={checkingProviders || providerBusy !== null}
+									onClick={() => void refreshProviders()}
+									className="cut-corner flex items-center gap-1.5 border border-border bg-surface px-3 py-1.5 font-condensed text-xs uppercase tracking-wider text-muted hover:border-red/50 hover:text-text disabled:opacity-50"
+								>
+									<RefreshCw size={12} className={checkingProviders ? "animate-spin" : ""} />
+									<span>Refresh</span>
+								</button>
+							</div>
+
+							<div className="space-y-3">
+								{AI_PROVIDERS.map((meta) => {
+									const state = providers.find((p) => p.id === meta.id);
+									const busyThis = providerBusy === meta.id;
+									const ready = Boolean(state?.installed && state?.loggedIn);
+									return (
+										<div
+											key={meta.id}
+											className={`cut-corner flex flex-wrap items-center justify-between gap-4 border p-4 ${
+												ready ? "border-emerald-500/40 bg-emerald-500/5" : "border-border bg-surface"
+											}`}
+										>
+											<div className="min-w-0 flex-1 space-y-1">
+												<div className="flex items-center gap-2">
+													<span className="font-condensed text-base font-semibold uppercase tracking-wider text-text">
+														{meta.name}
+													</span>
+													{checkingProviders && !state ? (
+														<span className="font-mono text-[10px] text-muted">Checking…</span>
+													) : ready ? (
+														<span className="flex items-center gap-1 rounded bg-emerald-500/15 px-2 py-0.5 font-mono text-[10px] text-emerald-400">
+															<Check size={11} />
+															Ready{state?.detail ? ` · ${state.detail}` : ""}
+														</span>
+													) : state?.installed ? (
+														<span className="rounded bg-amber-500/15 px-2 py-0.5 font-mono text-[10px] text-amber-300">
+															Needs sign-in{state.detail ? ` · ${state.detail}` : ""}
+														</span>
+													) : (
+														<span className="rounded bg-bg px-2 py-0.5 font-mono text-[10px] text-muted">
+															Not installed
+														</span>
+													)}
+												</div>
+												<p className="font-mono text-[11px] text-muted">{meta.subtitle}</p>
+											</div>
+
+											<div className="flex items-center gap-2">
+												{!state?.installed ? (
+													<button
+														type="button"
+														disabled={providerBusy !== null}
+														onClick={() => void handleProviderInstall(meta.id)}
+														className="cut-corner btn-hot flex items-center gap-1.5 px-3.5 py-1.5 font-condensed text-xs uppercase tracking-wider text-white disabled:opacity-50"
+													>
+														{meta.installable ? <Download size={13} /> : <ExternalLink size={13} />}
+														<span>
+															{busyThis ? "Installing…" : meta.installable ? "One-Click Install" : "Download"}
+														</span>
+													</button>
+												) : !state.loggedIn ? (
+													<button
+														type="button"
+														disabled={providerBusy !== null}
+														onClick={() => void handleProviderLogin(meta.id)}
+														className="cut-corner btn-hot flex items-center gap-1.5 px-3.5 py-1.5 font-condensed text-xs uppercase tracking-wider text-white disabled:opacity-50"
+													>
+														<ExternalLink size={13} />
+														<span>{busyThis ? "Waiting for browser…" : "Sign in with Browser"}</span>
+													</button>
+												) : null}
+											</div>
+										</div>
+									);
+								})}
+							</div>
+
+							{providerError ? (
+								<div className="cut-corner border border-red-hot/50 bg-red/10 px-4 py-2.5 font-mono text-xs text-red-hot">
+									{providerError}
+								</div>
+							) : null}
+						</div>
+					) : null}
+
+					{step === 2 ? (
+						<div className="space-y-5">
 							<div>
 								<p className="font-condensed text-xs uppercase tracking-[0.3em] text-red-hot">
-									Step 2 · Persistent Memory
+									Step 3 · Persistent Memory
 								</p>
 								<h2 className="glow-text mt-1 font-display text-4xl tracking-wide">
 									SET UP YOUR BRAIN VAULT
@@ -507,12 +694,12 @@ export function OnboardingModal({
 						</div>
 					) : null}
 
-					{step === 2 ? (
+					{step === 3 ? (
 						<div className="space-y-5">
 							<div className="flex items-start justify-between gap-4">
 								<div>
 									<p className="font-condensed text-xs uppercase tracking-[0.3em] text-red-hot">
-										Step 3 · Optional Personalization
+										Step 4 · Optional Personalization
 									</p>
 									<h2 className="glow-text mt-1 font-display text-4xl tracking-wide">
 										PRE-FILL MEMORIES &amp; NORTH STAR
@@ -523,7 +710,7 @@ export function OnboardingModal({
 								</div>
 								<button
 									type="button"
-									onClick={() => setStep(3)}
+									onClick={() => setStep(4)}
 									className="cut-corner shrink-0 border border-border bg-surface px-4 py-1.5 font-condensed text-xs uppercase tracking-wider text-muted hover:border-red/60 hover:text-text"
 								>
 									Skip for now →
@@ -585,11 +772,11 @@ export function OnboardingModal({
 						</div>
 					) : null}
 
-					{step === 3 ? (
+					{step === 4 ? (
 						<div className="space-y-4">
 							<div>
 								<p className="font-condensed text-xs uppercase tracking-[0.3em] text-red-hot">
-									Step 4 · Interactive Layout Guide
+									Step 5 · Interactive Layout Guide
 								</p>
 								<h2 className="glow-text mt-1 font-display text-4xl tracking-wide">
 									DOCKING, SPLITTING PANELS &amp; DESKS
@@ -603,11 +790,11 @@ export function OnboardingModal({
 						</div>
 					) : null}
 
-					{step === 4 ? (
+					{step === 5 ? (
 						<div className="space-y-5">
 							<div>
 								<p className="font-condensed text-xs uppercase tracking-[0.3em] text-red-hot">
-									Step 5 · Workbench Modules
+									Step 6 · Workbench Modules
 								</p>
 								<h2 className="glow-text mt-1 font-display text-4xl tracking-wide">
 									WHAT EACH MODULE DOES
@@ -655,7 +842,7 @@ export function OnboardingModal({
 						{step > 0 ? (
 							<button
 								type="button"
-								onClick={() => setStep((s) => (s - 1) as 0 | 1 | 2 | 3 | 4)}
+								onClick={() => setStep((s) => (s - 1) as StepIndex)}
 								className="cut-corner flex items-center gap-1.5 border border-border bg-bg px-3.5 py-1.5 font-condensed text-xs uppercase tracking-wider text-muted hover:border-red/50 hover:text-text"
 							>
 								<ChevronLeft size={14} />
@@ -675,12 +862,23 @@ export function OnboardingModal({
 								onClick={() => setStep(1)}
 								className="cut-corner btn-hot flex items-center gap-1.5 px-5 py-1.5 font-condensed text-xs uppercase tracking-wider text-white"
 							>
-								<span>Continue to Brain Setup</span>
+								<span>Continue to Connect AI</span>
 								<ChevronRight size={14} />
 							</button>
 						) : null}
 
 						{step === 1 ? (
+							<button
+								type="button"
+								onClick={() => setStep(2)}
+								className="cut-corner btn-hot flex items-center gap-1.5 px-5 py-1.5 font-condensed text-xs uppercase tracking-wider text-white"
+							>
+								<span>Continue to Brain Setup</span>
+								<ChevronRight size={14} />
+							</button>
+						) : null}
+
+						{step === 2 ? (
 							<button
 								type="button"
 								disabled={busy}
@@ -700,11 +898,11 @@ export function OnboardingModal({
 							</button>
 						) : null}
 
-						{step === 2 ? (
+						{step === 3 ? (
 							<>
 								<button
 									type="button"
-									onClick={() => setStep(3)}
+									onClick={() => setStep(4)}
 									className="cut-corner border border-border bg-bg px-4 py-1.5 font-condensed text-xs uppercase tracking-wider text-muted hover:border-red/50 hover:text-text"
 								>
 									Skip
@@ -721,10 +919,10 @@ export function OnboardingModal({
 							</>
 						) : null}
 
-						{step === 3 ? (
+						{step === 4 ? (
 							<button
 								type="button"
-								onClick={() => setStep(4)}
+								onClick={() => setStep(5)}
 								className="cut-corner btn-hot flex items-center gap-1.5 px-5 py-1.5 font-condensed text-xs uppercase tracking-wider text-white"
 							>
 								<span>Next: Modules Tour</span>
@@ -732,7 +930,7 @@ export function OnboardingModal({
 							</button>
 						) : null}
 
-						{step === 4 ? (
+						{step === 5 ? (
 							<button
 								type="button"
 								onClick={finishOnboarding}

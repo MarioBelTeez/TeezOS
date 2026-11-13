@@ -12,8 +12,11 @@ import { EventConverter, type UiEvent } from "../claude/events.ts";
  * before resuming it.
  */
 
+export type SessionAgent = "claude" | "agy";
+
 export type SessionSummary = {
 	readonly id: string;
+	readonly agent: SessionAgent;
 	readonly title: string;
 	readonly modified: number;
 	readonly size: number;
@@ -114,6 +117,7 @@ export async function listSessions(projectsRoot: string, cwd: string, limit = 15
 		const label = (summary ?? title ?? "Untitled session").replace(/\s+/g, " ").trim();
 		sessions.push({
 			id: file.name.slice(0, -6),
+			agent: "claude",
 			title: label.length > 90 ? `${label.slice(0, 90)}…` : label,
 			modified: Math.round(file.modified),
 			size: file.size,

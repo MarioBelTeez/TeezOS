@@ -59,10 +59,14 @@ export function SessionsPanel({ workspace }: { readonly workspace: Workspace }):
 			{ separator: true },
 			{ label: "Copy title", onSelect: () => copyText(session.title, "Title") },
 			{ label: "Copy session ID", onSelect: () => copyText(session.id, "Session ID") },
-			{ label: "Copy resume command", onSelect: () => copyText(`claude --resume ${session.id}`, "Resume command") },
+			{
+				label: "Copy resume command",
+				onSelect: () =>
+					copyText(session.agent === "agy" ? `agy --conversation ${session.id}` : `claude --resume ${session.id}`, "Resume command"),
+			},
 			{ separator: true },
 			{ label: "Refresh list", onSelect: load },
-			{ label: "Delete session…", danger: true, onSelect: () => void deletePastSession(workspace.id, session.id, session.title) },
+			{ label: "Delete session…", danger: true, onSelect: () => void deletePastSession(workspace.id, session.id, session.title, session.agent) },
 		]);
 	};
 
@@ -72,7 +76,7 @@ export function SessionsPanel({ workspace }: { readonly workspace: Workspace }):
 		<section className="flex h-full min-h-0 flex-col">
 			<header className="flex h-9 shrink-0 items-center justify-between pl-4 pr-1">
 				<h2 className="font-condensed text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">
-					Claude sessions {sessions ? `· ${sessions.length}` : ""}
+					Sessions {sessions ? `· ${sessions.length}` : ""}
 				</h2>
 				<IconButton label="Refresh" onClick={load}>
 					<RefreshCw size={14} />
@@ -90,12 +94,12 @@ export function SessionsPanel({ workspace }: { readonly workspace: Workspace }):
 				{sessions === null ? <p className="px-4 font-mono text-[11px] text-muted">Reading…</p> : null}
 				{sessions?.length === 0 ? (
 					<p className="px-4 font-mono text-[11px] leading-relaxed text-muted">
-						No Claude sessions have run in this folder yet.
+						No sessions have run in this folder yet.
 					</p>
 				) : null}
 				{shown.map((session) => (
 					<button
-						key={session.id}
+						key={`${session.agent}:${session.id}`}
 						type="button"
 						disabled={opening !== null}
 						onClick={() => void open(session)}
@@ -104,6 +108,7 @@ export function SessionsPanel({ workspace }: { readonly workspace: Workspace }):
 					>
 						<p className="line-clamp-2 text-[13px] leading-snug">{session.title}</p>
 						<p className="mt-0.5 font-mono text-[10px] text-muted">
+							<span className="mr-1.5 uppercase text-red/90">{session.agent}</span>
 							{opening === session.id ? "opening…" : ago(session.modified)} · {Math.max(1, Math.round(session.size / 1024))} KB
 						</p>
 					</button>

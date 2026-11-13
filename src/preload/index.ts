@@ -18,6 +18,7 @@ import type { EngineId, EngineStatus, FeedPrefs } from "../shared/feed-engine.ts
 import type { VaultSource } from "../shared/feed-history.ts";
 import type { ModelChoices } from "../main/ipc/feed.ts";
 import type { AgyUsage, ClaudeUsage } from "../shared/usage.ts";
+import type { InstallResult, LoginResult, ProviderId, ProviderState } from "../main/agents/setup.ts";
 import type { DraftPreview, SkillResult } from "../main/feed/skills.ts";
 import type { HistoryItem, SessionSummary } from "../main/sessions/history.ts";
 import type { SessionDeleteResult } from "../main/ipc/chat.ts";
@@ -150,8 +151,8 @@ const teez = {
 		create: (request: CreateChatRequest): Promise<string | null> => ipcRenderer.invoke("chat:create", request),
 		send: (chatId: string, text: string, images?: readonly { mediaType: string; data: string }[]): void =>
 			ipcRenderer.send("chat:send", chatId, text, images ?? []),
-		approve: (chatId: string, id: string, decision: "allow" | "deny"): void =>
-			ipcRenderer.send("chat:approve", chatId, id, decision),
+		approve: (chatId: string, id: string, decision: "allow" | "deny", updatedInput?: Record<string, unknown>): void =>
+			ipcRenderer.send("chat:approve", chatId, id, decision, updatedInput),
 		stop: (chatId: string): void => ipcRenderer.send("chat:stop", chatId),
 		close: (chatId: string): void => ipcRenderer.send("chat:close", chatId),
 		setModel: (chatId: string, model: string): Promise<void> =>
@@ -343,14 +344,18 @@ const teez = {
 		usage: (): Promise<ClaudeUsage | null> => ipcRenderer.invoke("usage:get"),
 		/** Antigravity's plan limits from `agy -p "/usage" --output-format json`; null when unavailable. */
 		agyUsage: (): Promise<AgyUsage | null> => ipcRenderer.invoke("usage:agy-get"),
+		setupStatus: (): Promise<ProviderState[]> => ipcRenderer.invoke("agents:setup-status"),
+		login: (id: ProviderId): Promise<LoginResult> => ipcRenderer.invoke("agents:setup-login", id),
+		install: (id: ProviderId): Promise<InstallResult> => ipcRenderer.invoke("agents:setup-install", id),
+		openExternal: (url: string): Promise<void> => ipcRenderer.invoke("agents:open-external", url),
 	},
 	sessions: {
 		list: (workspaceId: string): Promise<SessionSummary[]> => ipcRenderer.invoke("sessions:list", workspaceId),
-		transcript: (workspaceId: string, sessionId: string): Promise<HistoryItem[]> =>
-			ipcRenderer.invoke("sessions:transcript", workspaceId, sessionId),
+		transcript: (workspaceId: string, sessionId: string, agent?: SessionSummary["agent"]): Promise<HistoryItem[]> =>
+			ipcRenderer.invoke("sessions:transcript", workspaceId, sessionId, agent),
 		/** Moves the session to the Recycle Bin. */
-		remove: (workspaceId: string, sessionId: string): Promise<SessionDeleteResult> =>
-			ipcRenderer.invoke("sessions:delete", workspaceId, sessionId),
+		remove: (workspaceId: string, sessionId: string, agent?: SessionSummary["agent"]): Promise<SessionDeleteResult> =>
+			ipcRenderer.invoke("sessions:delete", workspaceId, sessionId, agent),
 	},
 	updates: {
 		status: (): Promise<UpdateStatus> => ipcRenderer.invoke("update:status"),

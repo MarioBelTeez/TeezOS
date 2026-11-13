@@ -78,27 +78,32 @@ export function limitRows(usage: ClaudeUsage): readonly LimitRow[] {
 }
 
 /**
- * Antigravity plan limits for the left rail, tailored to the active model:
- * - Gemini 4 Argon puts Argon Weekly first alongside Gemini 5-hour
- * - Gemini Flash/Pro shows Gemini 5-hour, Gemini Weekly, plus Argon Weekly if present
- * - Claude / GPT models inside Antigravity show 3P 5-hour and 3P Weekly
+ * Antigravity plan limits for the left rail, putting the active model's buckets
+ * first and keeping all other available buckets below so everything can be
+ * scrolled without switching models.
  */
 export function agyLimitRows(usage: AgyUsage, model: string): readonly LimitRow[] {
 	const id = model.toLowerCase();
+	const all: readonly (readonly [string, UsageWindow | null])[] = [
+		["Gemini 5h", usage.geminiFiveHour],
+		["Gemini wk", usage.geminiWeekly],
+		["Argon wk", usage.argonWeekly],
+		["3P 5-hour", usage.thirdPartyFiveHour],
+		["3P Weekly", usage.thirdPartyWeekly],
+	];
+	const priority =
+		id.includes("claude") || id.includes("opus") || id.includes("sonnet") || id.includes("gpt")
+			? ["3P 5-hour", "3P Weekly"]
+			: id.includes("argon")
+				? ["Argon wk", "Gemini 5h"]
+				: ["Gemini 5h", "Gemini wk", "Argon wk"];
+	const ordered = [...priority, ...all.map(([label]) => label).filter((label) => !priority.includes(label))];
+	const byLabel = new Map(all);
 	const rows: LimitRow[] = [];
-	if (id.includes("claude") || id.includes("gpt")) {
-		if (usage.thirdPartyFiveHour) rows.push({ label: "3P 5-hour", window: usage.thirdPartyFiveHour, size: "main" });
-		if (usage.thirdPartyWeekly) rows.push({ label: "3P Weekly", window: usage.thirdPartyWeekly, size: "main" });
-		return rows;
+	for (const label of ordered) {
+		const window = byLabel.get(label);
+		if (window) rows.push({ label, window, size: "main" });
 	}
-	if (id.includes("argon")) {
-		if (usage.argonWeekly) rows.push({ label: "Argon wk", window: usage.argonWeekly, size: "main" });
-		if (usage.geminiFiveHour) rows.push({ label: "Gemini 5h", window: usage.geminiFiveHour, size: "main" });
-		return rows;
-	}
-	if (usage.geminiFiveHour) rows.push({ label: "Gemini 5h", window: usage.geminiFiveHour, size: "main" });
-	if (usage.geminiWeekly) rows.push({ label: "Gemini wk", window: usage.geminiWeekly, size: "main" });
-	if (usage.argonWeekly) rows.push({ label: "Argon wk", window: usage.argonWeekly, size: "main" });
 	return rows;
 }
 

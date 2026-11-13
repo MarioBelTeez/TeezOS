@@ -59,7 +59,7 @@ export type ApprovalRequest = {
 };
 
 type PermissionResult =
-	| { readonly behavior: "allow" }
+	| { readonly behavior: "allow"; readonly updatedInput?: Record<string, unknown> }
 	| { readonly behavior: "deny"; readonly message: string };
 
 export type SessionDeps = {
@@ -170,16 +170,16 @@ export class ClaudeSession {
 		});
 	}
 
-	/** Settle an APPROVE / DENY card. Unknown ids are stale clicks; ignore them. */
-	respondToApproval(id: string, decision: ApprovalDecision): void {
+	/** Settle an APPROVE / DENY (or AskUserQuestion) card. Unknown ids are stale clicks; ignore them. */
+	respondToApproval(id: string, decision: ApprovalDecision, updatedInput?: Record<string, unknown>): void {
 		const resolve = this.#pending.get(id);
 		if (!resolve) return;
 		this.#pending.delete(id);
-		resolve(
-			decision === "allow"
-				? { behavior: "allow" }
-				: { behavior: "deny", message: "Denied in TeezOS." },
-		);
+		if (decision === "allow") {
+			resolve(updatedInput ? { behavior: "allow", updatedInput } : { behavior: "allow" });
+			return;
+		}
+		resolve({ behavior: "deny", message: "Denied in TeezOS." });
 	}
 
 	/** Stop the current turn. Interrupting keeps the session alive to resume. */

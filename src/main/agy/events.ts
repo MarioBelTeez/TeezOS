@@ -18,7 +18,7 @@ const num = (value: unknown): number => (typeof value === "number" && Number.isF
 
 export function agyContextWindow(model: string): number {
 	const id = model.toLowerCase();
-	if (id.includes("claude") || id.includes("gpt")) return 200_000;
+	if (id.includes("claude") || id.includes("opus") || id.includes("sonnet") || id.includes("gpt")) return 200_000;
 	return 1_000_000;
 }
 

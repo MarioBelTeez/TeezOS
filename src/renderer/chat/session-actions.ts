@@ -1,4 +1,4 @@
-import type { SessionSummary } from "../../main/sessions/history.ts";
+import type { SessionAgent, SessionSummary } from "../../main/sessions/history.ts";
 import { useChats } from "../state/chats.ts";
 import { useSettings } from "../state/settings.ts";
 import { useUi } from "../state/ui.ts";
@@ -14,15 +14,20 @@ export const SESSIONS_CHANGED = "teez:sessions-changed";
 const RELEASE_MS = 300;
 
 /** Opens a past session in a new chat tab and continues it with its full context. */
-export async function openPastSession(workspaceId: string, session: Pick<SessionSummary, "id" | "title">): Promise<void> {
-	const items = await window.teez.sessions.transcript(workspaceId, session.id);
+export async function openPastSession(
+	workspaceId: string,
+	session: Pick<SessionSummary, "id" | "title"> & { readonly agent?: SessionAgent },
+): Promise<void> {
+	const agent: SessionAgent = session.agent ?? "claude";
+	const items = await window.teez.sessions.transcript(workspaceId, session.id, agent);
 	const settings = useSettings.getState().settings;
+	const model = settings ? (agent === "agy" ? settings.agent.agyModel : settings.agent.claudeModel) : undefined;
 	await useChats.getState().openChat(workspaceId, {
-		agent: "claude",
+		agent,
 		resume: session.id,
 		title: session.title,
 		history: foldHistory(items).cards,
-		...(settings ? { model: settings.agent.claudeModel } : {}),
+		...(model ? { model } : {}),
 	});
 	revealPanel("chat");
 }
@@ -31,10 +36,15 @@ export async function openPastSession(workspaceId: string, session: Pick<Session
  * Asks, then moves the session to the Recycle Bin. Open tabs of it close
  * first; a tab still working blocks it. True when it was deleted.
  */
-export async function deletePastSession(workspaceId: string, sessionId: string, title: string): Promise<boolean> {
+export async function deletePastSession(
+	workspaceId: string,
+	sessionId: string,
+	title: string,
+	agent: SessionAgent = "claude",
+): Promise<boolean> {
 	const ui = useUi.getState();
 	const chats = useChats.getState();
-	const owners = sessionOwners(Object.values(chats.chats), workspaceId, sessionId);
+	const owners = sessionOwners(Object.values(chats.chats), workspaceId, sessionId, agent);
 	if (owners.busy) {
 		ui.toast("That session is still working in a chat tab. Stop it or wait, then delete it.", "error");
 		return false;
@@ -44,7 +54,7 @@ export async function deletePastSession(workspaceId: string, sessionId: string, 
 		for (const chatId of owners.idle) chats.close(chatId);
 		await new Promise((resolve) => setTimeout(resolve, RELEASE_MS));
 	}
-	const result = await window.teez.sessions.remove(workspaceId, sessionId);
+	const result = await window.teez.sessions.remove(workspaceId, sessionId, agent);
 	if (result === "busy") {
 		ui.toast("That session file is still open in a Claude process (a terminal or VS Code?). Close it there, then delete again.", "error");
 		return false;

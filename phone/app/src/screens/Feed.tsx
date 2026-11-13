@@ -38,6 +38,7 @@ const IDLE_POLL_MS = 30_000;
 
 export function Feed({ active }: { active: boolean }): ReactNode {
 	const [input, setInput] = useState("");
+	const [note, setNote] = useState("");
 	const [kind, setKind] = useState<FeedKind>("auto");
 	const [sending, setSending] = useState(false);
 	const [failure, setFailure] = useState<{ text: string; offline: boolean } | null>(null);
@@ -52,10 +53,11 @@ export function Feed({ active }: { active: boolean }): ReactNode {
 	const submit = async (): Promise<void> => {
 		if (input.trim() === "") return;
 		setSending(true);
-		const result = await postJson<{ id: string }>("/api/feed", feedBody(input, kind));
+		const result = await postJson<{ id: string }>("/api/feed", feedBody(input, kind, note));
 		setSending(false);
 		if (result.ok) {
 			setInput("");
+			setNote("");
 			setFailure(null);
 			void feed.reload();
 		} else setFailure({ text: result.error, offline: result.offline });
@@ -80,8 +82,16 @@ export function Feed({ active }: { active: boolean }): ReactNode {
 					}}
 				>
 					<textarea className="input min-h-24 resize-none" value={input} placeholder="Paste a link, or some text" aria-label="Link or text" onChange={(event) => setInput(event.target.value)} />
+					<input
+						type="text"
+						className="input"
+						value={note}
+						placeholder="Context / why this matters (optional)"
+						aria-label="Context"
+						onChange={(event) => setNote(event.target.value)}
+					/>
 					<div className="flex gap-2">
-						<div role="radiogroup" aria-label="Kind" className="flex flex-1 gap-1">
+						<div role="radiogroup" aria-label="Kind" className="flex flex-1 gap-1.5">
 							{KINDS.map((option) => (
 								<button
 									key={option.id}
@@ -89,7 +99,7 @@ export function Feed({ active }: { active: boolean }): ReactNode {
 									role="radio"
 									aria-checked={kind === option.id}
 									onClick={() => setKind(option.id)}
-									className={`h-11 flex-1 border text-[17px] ${kind === option.id ? "glow border-red text-text" : "border-border text-muted"}`}
+									className={`h-11 flex-1 rounded-xl border text-[16px] font-medium transition-colors ${kind === option.id ? "glow border-red bg-red/10 text-text" : "border-border bg-surface text-muted"}`}
 								>
 									{option.label}
 								</button>

@@ -41,7 +41,7 @@ function Message({ card, streaming, onActions }: { card: Card & { kind: "user" |
 		<div className={`group flex items-start gap-1 ${mine ? "flex-row-reverse" : ""}`}>
 			<div
 				{...(onActions ? press : {})}
-				className={`min-w-0 select-text ${mine ? "max-w-[85%] bg-surface-2 px-3 py-2 text-[17px] whitespace-pre-wrap shadow-[inset_0_0_0_1px_var(--color-border)]" : "flex-1 py-1"} ${streaming ? "stream-caret" : ""}`}
+				className={`min-w-0 select-text ${mine ? "max-w-[85%] rounded-2xl bg-surface-2 px-3.5 py-2.5 font-sans text-[16px] leading-relaxed whitespace-pre-wrap shadow-[inset_0_0_0_1px_var(--color-border)]" : "flex-1 px-0.5 py-1.5"} ${streaming ? "stream-caret" : ""}`}
 			>
 				{mine ? card.text : <Markdown text={card.text} />}
 			</div>

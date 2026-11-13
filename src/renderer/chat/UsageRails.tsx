@@ -147,7 +147,9 @@ export function UsageRails({
 	const gemini = agent === "agy";
 	const rows = useMemo(() => {
 		if (gemini && agyUsage) return agyLimitRows(agyUsage, model);
-		return usage ? limitRows(usage) : [];
+		const claudeRows = usage ? limitRows(usage) : [];
+		const extraAgy = agyUsage ? agyLimitRows(agyUsage, "") : [];
+		return [...claudeRows, ...extraAgy];
 	}, [gemini, agyUsage, usage, model]);
 	const weekly = useMemo(() => {
 		if (gemini && agyUsage) return null;
@@ -160,7 +162,7 @@ export function UsageRails({
 	if (!layout) return null;
 
 	const offset = `calc(50% + ${layout.composerWidth / 2 + layout.gap}px)`;
-	const rail = "absolute top-3 flex flex-col gap-2 transition-opacity";
+	const rail = "absolute top-3 flex max-h-[calc(100%-0.75rem)] flex-col gap-2 overflow-y-auto pr-1 transition-opacity";
 	const dim = gemini && !agyUsage ? "opacity-45" : "";
 
 	return (

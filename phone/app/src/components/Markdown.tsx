@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import { normalizeMathDelimiters } from "../../../../src/shared/math.ts";
 import { safeHref } from "../links.ts";
 
 /**
@@ -25,8 +28,8 @@ const components: Components = {
 export function Markdown({ text }: { text: string }): ReactNode {
 	return (
 		<div className="prose-teez">
-			<ReactMarkdown remarkPlugins={[remarkGfm]} components={components} skipHtml>
-				{text}
+			<ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={components} skipHtml>
+				{normalizeMathDelimiters(text)}
 			</ReactMarkdown>
 		</div>
 	);

@@ -62,7 +62,7 @@ type ChatsState = {
 	/** `images` were pasted into the composer; the chat keeps only their thumbnails. */
 	readonly send: (chatId: string, text: string, images?: readonly PastedImage[]) => void;
 	readonly stop: (chatId: string) => void;
-	readonly approve: (chatId: string, requestId: string, decision: "allow" | "deny") => void;
+	readonly approve: (chatId: string, requestId: string, decision: "allow" | "deny", updatedInput?: Record<string, unknown>) => void;
 	readonly setModel: (chatId: string, model: string) => void;
 	readonly setPermission: (chatId: string, mode: string) => void;
 	readonly setEffort: (chatId: string, effort: string) => void;
@@ -195,8 +195,8 @@ export const useChats = create<ChatsState>((set, get) => {
 
 		stop: (chatId) => window.teez.chat.stop(chatId),
 
-		approve: (chatId, requestId, decision) => {
-			window.teez.chat.approve(chatId, requestId, decision);
+		approve: (chatId, requestId, decision, updatedInput) => {
+			window.teez.chat.approve(chatId, requestId, decision, updatedInput);
 			update(chatId, (chat) => ({ ...chat, ...decideApproval(chat, requestId, decision) }));
 		},
 
