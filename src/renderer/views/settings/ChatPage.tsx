@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { CLAUDE_CHOICES, withCurrentOption } from "../../../shared/models.ts";
 import { CLAUDE_EFFORT_OPTIONS, CODEX_EFFORT_OPTIONS } from "../../../shared/effort.ts";
 import { Row, Section, Segmented, Select, Toggle, type Option } from "./controls.tsx";
+import { ProviderSetupList } from "../../onboarding/ProviderSetupList.tsx";
 
 const CLAUDE_OPTIONS: readonly Option[] = [{ id: "", label: "Default" }, ...CLAUDE_CHOICES.map((c) => ({ id: c.id, label: c.label }))];
 
@@ -30,6 +31,9 @@ export function ChatPage(): React.JSX.Element | null {
 
 	return (
 		<>
+			<Section title="AI connections">
+				<ProviderSetupList onConnected={() => void useAgents.getState().load()} />
+			</Section>
 			<Section title="New chats">
 				<Row label="Default agent">
 					<Segmented
