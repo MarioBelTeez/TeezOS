@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Download, ExternalLink, RefreshCw } from "lucide-react";
-import type { ProviderId, ProviderState } from "../../main/agents/setup.ts";
+import type { ExtrasStatus, ProviderId, ProviderState } from "../../main/agents/setup.ts";
 import { useUi } from "../state/ui.ts";
 
 const AI_PROVIDERS: readonly {
@@ -37,14 +37,20 @@ export function ProviderSetupList({
 }): React.JSX.Element {
 	const toast = useUi((s) => s.toast);
 	const [providers, setProviders] = useState<ProviderState[]>([]);
+	const [extras, setExtras] = useState<ExtrasStatus | null>(null);
 	const [checking, setChecking] = useState<boolean>(false);
-	const [busyId, setBusyId] = useState<ProviderId | null>(null);
+	const [busyId, setBusyId] = useState<ProviderId | "ecc" | "feed" | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
 	const refresh = useCallback(async () => {
 		setChecking(true);
 		try {
-			setProviders(await window.teez.agents.setupStatus());
+			const [nextProviders, nextExtras] = await Promise.all([
+				window.teez.agents.setupStatus(),
+				window.teez.agents.extrasStatus(),
+			]);
+			setProviders(nextProviders);
+			setExtras(nextExtras);
 		} finally {
 			setChecking(false);
 		}
@@ -89,6 +95,35 @@ export function ProviderSetupList({
 		}
 	};
 
+	const handleInstallEcc = async (): Promise<void> => {
+		setBusyId("ecc");
+		setError(null);
+		try {
+			const res = await window.teez.agents.installEcc();
+			if (res.ok) toast("ECC (Everything Claude Code) installed!", "success");
+			else setError(res.error ?? "ECC install failed.");
+			await refresh();
+		} finally {
+			setBusyId(null);
+		}
+	};
+
+	const handleInstallFeedTools = async (): Promise<void> => {
+		setBusyId("feed");
+		setError(null);
+		try {
+			const res = await window.teez.agents.installFeedTools();
+			if (res.ok) toast("Video tools installed for Feed the Brain!", "success");
+			else setError(res.error ?? "Video tools install failed.");
+			await refresh();
+		} finally {
+			setBusyId(null);
+		}
+	};
+
+	const feedTools = extras?.feedTools;
+	const feedReady = Boolean(feedTools?.watchScript && feedTools.python && feedTools.ytdlp && feedTools.ffmpeg);
+
 	return (
 		<div className="space-y-3">
 			<div className="flex justify-end">
@@ -107,7 +142,36 @@ export function ProviderSetupList({
 				const state = providers.find((p) => p.id === meta.id);
 				const busyThis = busyId === meta.id;
 				const ready = Boolean(state?.installed && state?.loggedIn);
-				return (
+				const handleInstallEcc = async (): Promise<void> => {
+		setBusyId("ecc");
+		setError(null);
+		try {
+			const res = await window.teez.agents.installEcc();
+			if (res.ok) toast("ECC (Everything Claude Code) installed!", "success");
+			else setError(res.error ?? "ECC install failed.");
+			await refresh();
+		} finally {
+			setBusyId(null);
+		}
+	};
+
+	const handleInstallFeedTools = async (): Promise<void> => {
+		setBusyId("feed");
+		setError(null);
+		try {
+			const res = await window.teez.agents.installFeedTools();
+			if (res.ok) toast("Video tools installed for Feed the Brain!", "success");
+			else setError(res.error ?? "Video tools install failed.");
+			await refresh();
+		} finally {
+			setBusyId(null);
+		}
+	};
+
+	const feedTools = extras?.feedTools;
+	const feedReady = Boolean(feedTools?.watchScript && feedTools.python && feedTools.ytdlp && feedTools.ffmpeg);
+
+	return (
 					<div
 						key={meta.id}
 						className={`cut-corner flex flex-wrap items-center justify-between gap-4 border p-4 ${
@@ -165,6 +229,97 @@ export function ProviderSetupList({
 					</div>
 				);
 			})}
+
+			<div className="pt-2">
+				<p className="mb-2 font-condensed text-xs uppercase tracking-wider text-muted">
+					Optional Add-Ons
+				</p>
+				<div className="space-y-3">
+					<div
+						className={`cut-corner flex flex-wrap items-center justify-between gap-4 border p-4 ${
+							extras?.ecc.installed ? "border-emerald-500/40 bg-emerald-500/5" : "border-border bg-surface"
+						}`}
+					>
+						<div className="min-w-0 flex-1 space-y-1">
+							<div className="flex items-center gap-2">
+								<span className="font-condensed text-base font-semibold uppercase tracking-wider text-text">
+									Everything Claude Code (ECC)
+								</span>
+								{extras?.ecc.installed ? (
+									<span className="flex items-center gap-1 rounded bg-emerald-500/15 px-2 py-0.5 font-mono text-[10px] text-emerald-400">
+										<Check size={11} />
+										Installed
+									</span>
+								) : (
+									<span className="rounded bg-bg px-2 py-0.5 font-mono text-[10px] text-muted">
+										Optional
+									</span>
+								)}
+							</div>
+							<p className="font-mono text-[11px] text-muted">
+								Adds extra coding agents, TDD workflows, and review skills for Claude Code.
+							</p>
+						</div>
+						{!extras?.ecc.installed ? (
+							<button
+								type="button"
+								disabled={busyId !== null}
+								onClick={() => void handleInstallEcc()}
+								className="cut-corner btn-hot flex items-center gap-1.5 px-3.5 py-1.5 font-condensed text-xs uppercase tracking-wider text-white disabled:opacity-50"
+							>
+								<Download size={13} />
+								<span>{busyId === "ecc" ? "Installing ECC…" : "One-Click Install"}</span>
+							</button>
+						) : null}
+					</div>
+
+					<div
+						className={`cut-corner flex flex-wrap items-center justify-between gap-4 border p-4 ${
+							feedReady ? "border-emerald-500/40 bg-emerald-500/5" : "border-border bg-surface"
+						}`}
+					>
+						<div className="min-w-0 flex-1 space-y-1">
+							<div className="flex items-center gap-2">
+								<span className="font-condensed text-base font-semibold uppercase tracking-wider text-text">
+									Feed Video Tools (/watch)
+								</span>
+								{feedReady ? (
+									<span className="flex items-center gap-1 rounded bg-emerald-500/15 px-2 py-0.5 font-mono text-[10px] text-emerald-400">
+										<Check size={11} />
+										Ready
+									</span>
+								) : (
+									<span className="rounded bg-bg px-2 py-0.5 font-mono text-[10px] text-muted">
+										{feedTools
+											? [
+													!feedTools.python && "Python",
+													!feedTools.ytdlp && "yt-dlp",
+													!feedTools.ffmpeg && "ffmpeg",
+												]
+													.filter(Boolean)
+													.join(", ") || "Checking…"
+											: "Checking…"}
+									</span>
+								)}
+							</div>
+							<p className="font-mono text-[11px] text-muted">
+								Lets Feed the Brain download and transcribe YouTube, Instagram, and TikTok videos (`watch.py` is bundled).
+							</p>
+						</div>
+						{!feedReady ? (
+							<button
+								type="button"
+								disabled={busyId !== null}
+								onClick={() => void handleInstallFeedTools()}
+								className="cut-corner btn-hot flex items-center gap-1.5 px-3.5 py-1.5 font-condensed text-xs uppercase tracking-wider text-white disabled:opacity-50"
+							>
+								<Download size={13} />
+								<span>{busyId === "feed" ? "Installing tools…" : "One-Click Install"}</span>
+							</button>
+						) : null}
+					</div>
+				</div>
+			</div>
 
 			{error ? (
 				<div className="cut-corner border border-red-hot/50 bg-red/10 px-4 py-2.5 font-mono text-xs text-red-hot">

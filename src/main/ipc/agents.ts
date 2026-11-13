@@ -1,5 +1,13 @@
 import { ipcMain, shell } from "electron";
-import { installProvider, loginProvider, readProviderStatuses, type ProviderId } from "../agents/setup.ts";
+import {
+	installEcc,
+	installFeedTools,
+	installProvider,
+	loginProvider,
+	readExtrasStatus,
+	readProviderStatuses,
+	type ProviderId,
+} from "../agents/setup.ts";
 
 function asProvider(value: unknown): ProviderId | null {
 	return value === "claude" || value === "codex" || value === "agy" ? value : null;
@@ -22,4 +30,7 @@ export function registerAgentsIpc(): void {
 			await shell.openExternal(url);
 		}
 	});
+	ipcMain.handle("agents:extras-status", () => readExtrasStatus());
+	ipcMain.handle("agents:install-ecc", () => installEcc());
+	ipcMain.handle("agents:install-feed-tools", () => installFeedTools());
 }

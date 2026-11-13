@@ -18,7 +18,7 @@ import type { EngineId, EngineStatus, FeedPrefs } from "../shared/feed-engine.ts
 import type { VaultSource } from "../shared/feed-history.ts";
 import type { ModelChoices } from "../main/ipc/feed.ts";
 import type { AgyUsage, ClaudeUsage } from "../shared/usage.ts";
-import type { InstallResult, LoginResult, ProviderId, ProviderState } from "../main/agents/setup.ts";
+import type { ExtrasStatus, InstallResult, LoginResult, ProviderId, ProviderState } from "../main/agents/setup.ts";
 import type { DraftPreview, SkillResult } from "../main/feed/skills.ts";
 import type { HistoryItem, SessionSummary } from "../main/sessions/history.ts";
 import type { SessionDeleteResult } from "../main/ipc/chat.ts";
@@ -348,6 +348,9 @@ const teez = {
 		login: (id: ProviderId): Promise<LoginResult> => ipcRenderer.invoke("agents:setup-login", id),
 		install: (id: ProviderId): Promise<InstallResult> => ipcRenderer.invoke("agents:setup-install", id),
 		openExternal: (url: string): Promise<void> => ipcRenderer.invoke("agents:open-external", url),
+		extrasStatus: (): Promise<ExtrasStatus> => ipcRenderer.invoke("agents:extras-status"),
+		installEcc: (): Promise<InstallResult> => ipcRenderer.invoke("agents:install-ecc"),
+		installFeedTools: (): Promise<InstallResult> => ipcRenderer.invoke("agents:install-feed-tools"),
 	},
 	sessions: {
 		list: (workspaceId: string): Promise<SessionSummary[]> => ipcRenderer.invoke("sessions:list", workspaceId),

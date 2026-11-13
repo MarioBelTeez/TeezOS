@@ -228,7 +228,7 @@ async function startsLikePdf(file: string): Promise<boolean> {
 }
 
 /** watch.py of the highest installed /watch version: ~/.claude/plugins/cache/<market>/watch/<version>/scripts/watch.py. */
-export function locateWatchScript(home: string): string | null {
+export function locateWatchScript(home: string, resourcesDir?: string): string | null {
 	const cache = join(home, ".claude", "plugins", "cache");
 	const found: { version: number[]; path: string }[] = [];
 	for (const market of list(cache)) {
@@ -238,7 +238,16 @@ export function locateWatchScript(home: string): string | null {
 		}
 	}
 	found.sort((a, b) => compareVersions(b.version, a.version));
-	return found[0]?.path ?? null;
+	if (found[0]?.path) return found[0].path;
+	const bundledCandidates = [
+		...(resourcesDir ? [join(resourcesDir, "watch", "watch.py")] : []),
+		...(typeof process.resourcesPath === "string" ? [join(process.resourcesPath, "watch", "watch.py")] : []),
+		join(process.cwd(), "resources", "watch", "watch.py"),
+	];
+	for (const candidate of bundledCandidates) {
+		if (isFile(candidate)) return candidate;
+	}
+	return null;
 }
 
 function compareVersions(a: readonly number[], b: readonly number[]): number {

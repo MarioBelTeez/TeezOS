@@ -1,5 +1,5 @@
 import { execFile, spawn } from "node:child_process";
-import { statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { shell } from "electron";
@@ -7,6 +7,7 @@ import { listModels, resolveAgy } from "../agy/locate.ts";
 import { resolveClaudeBinary } from "../claude/locator.ts";
 import { resolveCodex } from "../codex/locate.ts";
 import { codexStatus, probeCodex, readCodexVersion } from "../codex/status.ts";
+import { locatePython, locateWatchScript } from "../feed/source.ts";
 
 function isFile(file: string): boolean {
 	try {
@@ -63,6 +64,16 @@ export type LoginResult = {
 export type InstallResult = {
 	readonly ok: boolean;
 	readonly error?: string;
+};
+
+export type ExtrasStatus = {
+	readonly ecc: { readonly installed: boolean };
+	readonly feedTools: {
+		readonly watchScript: boolean;
+		readonly python: boolean;
+		readonly ytdlp: boolean;
+		readonly ffmpeg: boolean;
+	};
 };
 
 const HTTPS_URL = /https:\/\/[^\s"'<>]+/i;
@@ -230,4 +241,93 @@ export async function installProvider(id: ProviderId): Promise<InstallResult> {
 			},
 		);
 	});
+}
+
+function hasBinary(name: string): Promise<boolean> {
+	const finder = process.platform === "win32" ? "where.exe" : "which";
+	return new Promise((resolve) => {
+		execFile(finder, [name], { windowsHide: true, timeout: 5_000 }, (error) => resolve(!error));
+	});
+}
+
+export async function readExtrasStatus(): Promise<ExtrasStatus> {
+	const home = homedir();
+	const pathEntries = (process.env["PATH"] ?? "").split(path.delimiter).filter(Boolean);
+	const eccInstalled = existsSync(path.join(home, ".claude", "ecc", "install-state.json"));
+	const watchScript = locateWatchScript(home) !== null;
+	const python = locatePython(process.platform, pathEntries, isFile) !== null;
+	const [ytdlp, ffmpeg] = await Promise.all([hasBinary("yt-dlp"), hasBinary("ffmpeg")]);
+	return {
+		ecc: { installed: eccInstalled },
+		feedTools: { watchScript, python, ytdlp, ffmpeg },
+	};
+}
+
+export async function installEcc(): Promise<InstallResult> {
+	const npxCmd = process.platform === "win32" ? "npx.cmd" : "npx";
+	return new Promise((resolve) => {
+		execFile(
+			npxCmd,
+			["-y", "ecc-universal@latest", "install", "--target", "claude"],
+			{ windowsHide: true, timeout: INSTALL_TIMEOUT_MS, shell: process.platform === "win32" },
+			(error, _stdout, stderr) => {
+				if (!error) {
+					resolve({ ok: true });
+					return;
+				}
+				const msg = String(stderr || error.message);
+				if (/not recognized|ENOENT/i.test(msg)) {
+					void shell.openExternal("https://nodejs.org");
+					resolve({ ok: false, error: "Node.js is required to install ECC. Opened nodejs.org in your browser." });
+					return;
+				}
+				resolve({ ok: false, error: msg.trim().split(/\r?\n/).slice(-3).join(" ") || "ECC install failed." });
+			},
+		);
+	});
+}
+
+function runCommand(cmd: string, args: readonly string[]): Promise<InstallResult> {
+	return new Promise((resolve) => {
+		execFile(cmd, [...args], { windowsHide: true, timeout: INSTALL_TIMEOUT_MS }, (error, _stdout, stderr) => {
+			if (!error) resolve({ ok: true });
+			else resolve({ ok: false, error: String(stderr || error.message).trim().split(/\r?\n/).slice(-3).join(" ") || "Install failed." });
+		});
+	});
+}
+
+export async function installFeedTools(): Promise<InstallResult> {
+	const current = await readExtrasStatus();
+	const { python, ytdlp, ffmpeg } = current.feedTools;
+	if (python && ytdlp && ffmpeg) return { ok: true };
+
+	if (process.platform === "win32") {
+		const wingetIds: string[] = [];
+		if (!python) wingetIds.push("Python.Python.3.12");
+		if (!ytdlp) wingetIds.push("yt-dlp.yt-dlp");
+		if (!ffmpeg) wingetIds.push("Gyan.FFmpeg");
+		for (const id of wingetIds) {
+			const res = await runCommand("winget", [
+				"install",
+				"--id",
+				id,
+				"-e",
+				"--accept-package-agreements",
+				"--accept-source-agreements",
+				"--silent",
+			]);
+			if (!res.ok) return res;
+		}
+		return { ok: true };
+	}
+
+	if (process.platform === "darwin") {
+		const pkgs: string[] = [];
+		if (!python) pkgs.push("python");
+		if (!ytdlp) pkgs.push("yt-dlp");
+		if (!ffmpeg) pkgs.push("ffmpeg");
+		return runCommand("brew", ["install", ...pkgs]);
+	}
+
+	return { ok: false, error: "Install python3, yt-dlp, and ffmpeg using your Linux package manager (e.g. apt or pacman)." };
 }

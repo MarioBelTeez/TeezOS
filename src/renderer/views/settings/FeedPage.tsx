@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useFeed } from "../../state/feed.ts";
 import { useUi } from "../../state/ui.ts";
 import { DEFAULT_FEED_PREFS, ENGINE_LABEL, MAX_GEMINI_KEY, type EngineChoice, type EngineId, type EngineStatus, type FeedPrefs, type ModelInfo } from "../../../shared/feed-engine.ts";
+import type { ExtrasStatus } from "../../../main/agents/setup.ts";
 import { Button, EnabledRow, Note, Row, Section, Select, type Option } from "./controls.tsx";
 
 /**
@@ -147,6 +148,31 @@ export function FeedPage(): React.JSX.Element {
 	const chosenModel = engine ? prefs.models[engine] : "";
 	const withChosen = chosenModel && !modelOptions.some((o) => o.id === chosenModel) ? [...modelOptions, { id: chosenModel, label: chosenModel }] : modelOptions;
 
+	const [extras, setExtras] = useState<ExtrasStatus | null>(null);
+	const [installingTools, setInstallingTools] = useState(false);
+
+	const refreshExtras = useCallback(() => {
+		void window.teez.agents.extrasStatus().then(setExtras);
+	}, []);
+
+	useEffect(() => {
+		refreshExtras();
+	}, [refreshExtras]);
+
+	const installTools = async (): Promise<void> => {
+		setInstallingTools(true);
+		try {
+			const res = await window.teez.agents.installFeedTools();
+			useUi.getState().toast(res.ok ? "Video tools installed." : (res.error ?? "Install failed."), res.ok ? "success" : "error");
+			refreshExtras();
+		} finally {
+			setInstallingTools(false);
+		}
+	};
+
+	const feedTools = extras?.feedTools;
+	const feedReady = Boolean(feedTools?.watchScript && feedTools.python && feedTools.ytdlp && feedTools.ffmpeg);
+
 	return (
 		<>
 			<Section title="Feed the Brain">
@@ -186,6 +212,18 @@ export function FeedPage(): React.JSX.Element {
 					<Button disabled={sending || (!hasGemini && !hasGroq)} onClick={sendKeys}>
 						Send keys to the phone server
 					</Button>
+				</Row>
+				<Row
+					label="Video tools (/watch)"
+					hint="watch.py is bundled. Python, yt-dlp, and ffmpeg are needed to feed YouTube, Instagram, and TikTok videos."
+				>
+					{feedReady ? (
+						<span className="font-mono text-[11.5px] text-[#73c991]">ready (watch.py · python · yt-dlp · ffmpeg)</span>
+					) : (
+						<Button disabled={installingTools} onClick={() => void installTools()}>
+							{installingTools ? "Installing…" : "One-click install video tools"}
+						</Button>
+					)}
 				</Row>
 			</Section>
 			<Section title="Output folders">

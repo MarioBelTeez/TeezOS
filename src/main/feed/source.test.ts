@@ -220,7 +220,7 @@ describe("locators", () => {
 			}
 			expect(locateWatchScript(home)).toBe(join(home, ".claude", "plugins", "cache", "claude-video", "watch", "0.10.0", "scripts", "watch.py"));
 			expect(existsSync(locateWatchScript(home)!)).toBe(true);
-			expect(locateWatchScript(join(home, "nowhere"))).toBeNull();
+			expect(locateWatchScript(join(home, "nowhere"))).toBe(join(process.cwd(), "resources", "watch", "watch.py"));
 		} finally {
 			rmSync(home, { recursive: true, force: true });
 		}
