@@ -54,18 +54,7 @@ export function resolveUpdateConfig(environment: UpdateEnvironment): UpdateConfi
 		};
 	}
 
-	const token = firstToken(environment);
-	if (!token) {
-		return {
-			enabled: false,
-			reason:
-				"Automatic updates are off. To turn them on, save a GitHub token with " +
-				"read-only access to the TeezAI repository in Settings → Updates, put it " +
-				`in a file named "${TOKEN_FILE_NAME}" in this app's data folder, or set ` +
-				"TEEZAI_UPDATE_TOKEN in the environment.",
-		};
-	}
-
+	const token = firstToken(environment) ?? "";
 	return { enabled: true, token };
 }
 
@@ -76,7 +65,7 @@ export function isGithubToken(value: string): boolean {
 
 export type AccessCheck = { readonly ok: true } | { readonly ok: false; readonly message: string };
 
-const RELEASES_URL = "https://api.github.com/repos/MarioBelTeez/TeezAI/releases?per_page=1";
+const RELEASES_URL = "https://api.github.com/repos/MarioBelTeez/TeezOS/releases?per_page=1";
 
 /**
  * Ask GitHub whether this token can read TeezAI's releases, before it is

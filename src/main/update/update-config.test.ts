@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { resolveUpdateConfig, TOKEN_FILE_NAME, isGithubToken, checkReleaseAccess } from "./update-config.ts";
+import { resolveUpdateConfig, isGithubToken, checkReleaseAccess } from "./update-config.ts";
 import type { UpdateEnvironment } from "./update-config.ts";
 
 /**
@@ -80,18 +80,13 @@ describe("resolveUpdateConfig", () => {
 			const config = resolveUpdateConfig(
 				environment({ env: { TEEZAI_UPDATE_TOKEN: blank } }),
 			);
-			expect(config.enabled).toBe(false);
+			expect(config).toEqual({ enabled: true, token: "" });
 		}
 	});
 
-	test("without a token the updater stays off and says how to turn it on", () => {
+	test("without a token the updater still runs against the public TeezOS repo", () => {
 		const config = resolveUpdateConfig(environment());
-		expect(config.enabled).toBe(false);
-		if (!config.enabled) {
-			expect(config.reason).toContain(TOKEN_FILE_NAME);
-			expect(config.reason).toMatch(/Settings/);
-			expect(config.reason).toMatch(/read-only/i);
-		}
+		expect(config).toEqual({ enabled: true, token: "" });
 	});
 
 	test("the reason never repeats the token back", () => {
@@ -127,7 +122,7 @@ describe("checkReleaseAccess", () => {
 			return new Response("[]", { status: 200 });
 		});
 		expect(result).toEqual({ ok: true });
-		expect(seen).toEqual({ url: "https://api.github.com/repos/MarioBelTeez/TeezAI/releases?per_page=1", auth: "Bearer ghp_x" });
+		expect(seen).toEqual({ url: "https://api.github.com/repos/MarioBelTeez/TeezOS/releases?per_page=1", auth: "Bearer ghp_x" });
 	});
 
 	test("a classic token is refused: one that can read a private repository can also write to it", async () => {

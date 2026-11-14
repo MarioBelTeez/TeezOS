@@ -3,46 +3,20 @@ import type { UpdateStatus } from "../../../main/update/updater.ts";
 import { Row, Section } from "./controls.tsx";
 
 /**
- * TeezAI's releases are private, so updating needs a read-only GitHub token.
- * It is checked against GitHub, then kept encrypted in the main process; the
- * window only learns whether one is saved.
+ * TeezOS releases are published on the public MarioBelTeez/TeezOS GitHub
+ * repository, so automatic updates work without any GitHub token.
  */
 export function UpdatesPage(): React.JSX.Element {
 	const [status, setStatus] = useState<UpdateStatus | null>(null);
-	const [hasToken, setHasToken] = useState<boolean | null>(null);
-	const [editing, setEditing] = useState(false);
-	const [token, setToken] = useState("");
-	const [busy, setBusy] = useState(false);
-	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
 		void window.teez.updates.status().then(setStatus);
-		void window.teez.updates.hasToken().then(setHasToken);
 		return window.teez.updates.onStatus(setStatus);
 	}, []);
 
-	const save = async (): Promise<void> => {
-		setBusy(true);
-		setError(null);
-		const result = await window.teez.updates.setToken(token);
-		setBusy(false);
-		if (!result.ok) {
-			setError(result.message);
-			return;
-		}
-		setToken("");
-		setEditing(false);
-		setHasToken(true);
-	};
-
-	const remove = async (): Promise<void> => {
-		await window.teez.updates.clearToken();
-		setHasToken(false);
-	};
-
 	return (
 		<Section title="Updates">
-			<Row label="Automatic updates" hint="Checks at launch, every 6 hours and after the PC wakes; a new version waits for your restart.">
+			<Row label="Automatic updates" hint="Checks public MarioBelTeez/TeezOS releases at launch, every 6 hours, and after wake; updates install on restart.">
 				<span className="font-mono text-[11.5px]" title={status?.state === "disabled" ? status.reason : undefined}>
 					{describeUpdate(status)}
 				</span>
@@ -55,46 +29,6 @@ export function UpdatesPage(): React.JSX.Element {
 						check now
 					</button>
 				) : null}
-			</Row>
-			<Row label="GitHub token" hint="Read-only on MarioBelTeez/TeezAI. Stored encrypted on this PC.">
-				{hasToken && !editing ? (
-					<div className="flex items-center gap-3 font-mono text-[11.5px]">
-						<span className="text-[#73c991]">saved</span>
-						<button type="button" onClick={() => setEditing(true)} className="text-muted hover:text-text">
-							replace
-						</button>
-						<button type="button" onClick={() => void remove()} className="text-muted hover:text-red">
-							remove
-						</button>
-					</div>
-				) : (
-					<div className="min-w-0 flex-1 space-y-1">
-						<div className="flex gap-1">
-							<input
-								type="password"
-								value={token}
-								onChange={(event) => setToken(event.target.value)}
-								onKeyDown={(event) => {
-									if (event.key === "Enter" && token.trim()) void save();
-								}}
-								placeholder="github_pat_…"
-								className="min-w-0 flex-1 bg-surface px-2 py-1 font-mono text-[11px] text-text outline-none ring-1 ring-border focus:glow"
-							/>
-							<button type="button" disabled={!token.trim() || busy} onClick={() => void save()} className="cut-corner bg-red px-2.5 font-condensed text-[11px] uppercase disabled:opacity-40">
-								{busy ? "Checking…" : "Save"}
-							</button>
-						</div>
-						{error ? <p className="font-mono text-[10.5px] text-red">{error}</p> : null}
-						<a
-							href="https://github.com/settings/personal-access-tokens/new"
-							target="_blank"
-							rel="noreferrer"
-							className="font-mono text-[10px] text-muted hover:text-text"
-						>
-							Create one: fine-grained, only TeezAI, Contents read-only →
-						</a>
-					</div>
-				)}
 			</Row>
 		</Section>
 	);

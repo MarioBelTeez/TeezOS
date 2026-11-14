@@ -71,7 +71,7 @@ export function startUpdates(report: (status: UpdateStatus) => void, readStoredT
 	// The token goes straight to the library. It used to be set as GH_TOKEN in
 	// process.env, which every terminal, git call and agent then inherited —
 	// one `printenv` away from anyone at the keyboard or any agent.
-	autoUpdater.setFeedURL({ provider: "github", owner: "MarioBelTeez", repo: "TeezAI", private: true, token: config.token });
+	autoUpdater.setFeedURL({ provider: "github", owner: "MarioBelTeez", repo: "TeezOS", private: false, ...(config.token ? { token: config.token } : {}) });
 
 	// Download when one is found, but never restart under the user: a session
 	// mid-turn should not vanish because a release landed.

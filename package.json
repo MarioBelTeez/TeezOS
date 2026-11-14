@@ -68,9 +68,9 @@
     "publish": {
       "provider": "github",
       "owner": "MarioBelTeez",
-      "repo": "TeezAI",
-      "private": true,
-      "releaseType": "draft"
+      "repo": "TeezOS",
+      "private": false,
+      "releaseType": "release"
     },
     "npmRebuild": false
   },
