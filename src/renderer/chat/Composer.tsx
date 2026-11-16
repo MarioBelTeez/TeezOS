@@ -185,12 +185,12 @@ export function Composer({
 
 	const slashQuery = menuSource === "typed" ? (SLASH.exec(draft)?.[1] ?? "") : null;
 
-	/** Screenshots pasted or dropped in. Claude sees them; Antigravity's CLI takes text only. */
+	/** Screenshots pasted or dropped in. Claude and Antigravity see them; Codex takes text only. */
 	const addImages = (files: readonly File[]): boolean => {
 		const pictures = files.filter((file) => IMAGE_TYPES.has(file.type) && file.size > 0);
 		if (pictures.length === 0 || !chat) return false;
-		if (chat.agent !== "claude") {
-			setImageHint("Antigravity's CLI takes text only — switch this chat to Claude to send images.");
+		if (chat.agent === "codex") {
+			setImageHint("Codex takes text only — switch this chat to Claude or Antigravity to send images.");
 			return true;
 		}
 		const room = Math.max(0, MAX_IMAGES - slots.current);
