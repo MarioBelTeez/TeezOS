@@ -3,6 +3,8 @@ import { createInterface } from "node:readline";
 import type { Readable, Writable } from "node:stream";
 import type { UiEvent } from "../claude/events.ts";
 import type { ApprovalDecision } from "../claude/service.ts";
+import type { ChatImage } from "../../shared/images.ts";
+import { appendAttachedImages, writeTurnImages } from "../agents/turn-images.ts";
 import type { AgentSession, SlashCommandInfo } from "../agents/registry.ts";
 import { AgyEventConverter } from "./events.ts";
 
@@ -96,7 +98,7 @@ export class AgySession implements AgentSession {
 	#permission: string;
 	#effort: string;
 	#child: ChildLike | null = null;
-	#queue: string[] = [];
+	#queue: { readonly text: string; readonly images: readonly ChatImage[] }[] = [];
 	#stopped = false;
 	#startedAt = 0;
 	#disposed = false;
@@ -118,15 +120,13 @@ export class AgySession implements AgentSession {
 		return this.#conversationId;
 	}
 
-	send(text: string, images: readonly unknown[] = []): void {
+	send(text: string, images: readonly ChatImage[] = []): void {
 		if (this.#disposed) return;
-		// Antigravity's headless input takes text only; say so rather than drop them silently.
-		if (images.length > 0) text = `${text}\n\n[${images.length} pasted image(s) left out: Antigravity's CLI accepts text only]`;
 		if (this.#child) {
-			this.#queue.push(text);
+			this.#queue.push({ text, images });
 			return;
 		}
-		this.#run(text);
+		this.#run(text, images);
 	}
 
 	async stop(): Promise<void> {
@@ -162,7 +162,7 @@ export class AgySession implements AgentSession {
 		void this.stop();
 	}
 
-	args(): string[] {
+	args(extraDirs: readonly string[] = []): string[] {
 		return [
 			"--input-format",
 			"stream-json",
@@ -170,6 +170,7 @@ export class AgySession implements AgentSession {
 			"stream-json",
 			"--add-dir",
 			this.#deps.cwd,
+			...extraDirs.flatMap((dir) => ["--add-dir", dir]),
 			"--effort",
 			this.#effort || "medium",
 			...(this.#model ? ["--model", this.#model] : []),
@@ -181,18 +182,21 @@ export class AgySession implements AgentSession {
 		];
 	}
 
-	#run(text: string): void {
+	#run(text: string, images: readonly ChatImage[] = []): void {
 		const now = this.#deps.now ?? Date.now;
 		this.#stopped = false;
 		this.#startedAt = now();
 		const converter = new AgyEventConverter({ model: this.#model });
 		const stderr: string[] = [];
 		let sawResult = false;
+		const written = writeTurnImages(images);
+		const prompt = written ? appendAttachedImages(text, written.paths) : text;
 
 		let child: ChildLike;
 		try {
-			child = (this.#deps.spawn ?? defaultSpawn)(this.#deps.agyPath, this.args(), { cwd: this.#deps.cwd });
+			child = (this.#deps.spawn ?? defaultSpawn)(this.#deps.agyPath, this.args(written ? [written.dir] : []), { cwd: this.#deps.cwd });
 		} catch (error) {
+			written?.cleanup();
 			this.#emit({ kind: "run-error", sessionId: this.#conversationId, reason: "agy-not-found", message: String(error) });
 			return;
 		}
@@ -224,6 +228,7 @@ export class AgySession implements AgentSession {
 			finished = true;
 			lines.close();
 			this.#child = null;
+			written?.cleanup();
 			if (this.#stopped) {
 				this.#emit({ kind: "turn-cancelled", sessionId: this.#conversationId, durationMs: now() - this.#startedAt });
 			} else if (!sawResult) {
@@ -235,7 +240,7 @@ export class AgySession implements AgentSession {
 				});
 			}
 			const next = this.#queue.shift();
-			if (next !== undefined && !this.#disposed) this.#run(next);
+			if (next !== undefined && !this.#disposed) this.#run(next.text, next.images);
 		};
 		// "close", not "exit": exit can fire while stdout still holds the final
 		// result line; close waits until the streams are drained.
@@ -243,7 +248,7 @@ export class AgySession implements AgentSession {
 		child.on("error", (error) => finish(null, error));
 
 		child.stdin.on("error", () => undefined);
-		child.stdin.end(`${JSON.stringify({ event: "user", message: { content: text } })}\n`);
+		child.stdin.end(`${JSON.stringify({ event: "user", message: { content: prompt } })}\n`);
 	}
 
 	#emit(event: UiEvent): void {

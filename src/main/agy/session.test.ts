@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { AgySession, permissionFlags, type ChildLike } from "./session.ts";
 import type { UiEvent } from "../claude/events.ts";
@@ -147,6 +147,40 @@ describe("AgySession", () => {
 		await waitFor(() => children.length === 2);
 		await waitFor(() => (children[1]?.input ?? "").length > 0);
 		expect(children[1]?.input).toContain("second");
+	});
+
+	test("writes attached images to a temp dir, adds --add-dir, and cleans up after the turn", async () => {
+		const children: FakeChild[] = [];
+		const calls: string[][] = [];
+		const session = new AgySession({
+			agyPath: "agy.exe",
+			cwd: "C:\\ws",
+			model: "gemini-3.8-flash-medium",
+			permission: "plan",
+			effort: "low",
+			onEvent: () => undefined,
+			spawn: (_file, args) => {
+				calls.push([...args]);
+				const c = fakeChild();
+				children.push(c);
+				return c;
+			},
+		});
+		const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+		session.send("check this", [{ mediaType: "image/png", data: png }]);
+		await waitFor(() => children[0]?.input.length !== 0);
+		const args = calls[0] ?? [];
+		const addDirIndices = args.map((v, i) => (v === "--add-dir" ? i : -1)).filter((i) => i >= 0);
+		expect(addDirIndices).toHaveLength(2);
+		const imgDir = args[addDirIndices[1]! + 1]!;
+		expect(existsSync(join(imgDir, "image-1.png"))).toBe(true);
+		const sent = JSON.parse(children[0]?.input ?? "") as { message: { content: string } };
+		expect(sent.message.content).toContain("check this");
+		expect(sent.message.content).toContain("image-1.png");
+
+		children[0]?.finish(fixture("read-file.ndjson"));
+		await waitFor(() => !existsSync(imgDir));
+		expect(existsSync(imgDir)).toBe(false);
 	});
 });
 
