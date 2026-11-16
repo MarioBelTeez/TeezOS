@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
 import { existsSync, statSync } from "node:fs";
 import { app, BrowserWindow, dialog, ipcMain, screen, shell } from "electron";
@@ -15,6 +16,7 @@ import { registerAutomationsIpc } from "./ipc/automations.ts";
 import { SecretStore } from "./settings/secrets.ts";
 import { loadWindowState, trackWindowState } from "./window-state.ts";
 import { isNetworkFileUrl } from "./net-guard.ts";
+import { isLocalFileUrl } from "../shared/safe-url.ts";
 import { registerIconIpc } from "./ipc/icons.ts";
 import { startPresence, type Presence } from "./discord/start.ts";
 import { PresenceTracker } from "./discord/presence.ts";
@@ -103,8 +105,22 @@ function createWindow(links: LinkRouting): BrowserWindow {
 
 	// Links in chat and notes open in a browser, never inside the app window:
 	// the window holds the bridge, and a page loaded into it would hold it too.
+	const openLocalFile = (url: string, reveal: boolean): void => {
+		if (!isLocalFileUrl(url)) return;
+		try {
+			const parsed = new URL(url);
+			parsed.hash = "";
+			parsed.search = "";
+			const filePath = fileURLToPath(parsed);
+			if (reveal) shell.showItemInFolder(filePath);
+			else void shell.openPath(filePath);
+		} catch {
+			// Ignore malformed file:// URLs.
+		}
+	};
+
 	// The built-in browser panel takes them when it is on; Shift+click
-	// ("new-window") always goes to the system browser.
+	// ("new-window") always goes to the system browser (or reveals local files).
 	window.webContents.setWindowOpenHandler(({ url, disposition }) => {
 		if (/^https?:\/\//i.test(url)) {
 			if (disposition !== "new-window" && url.length <= MAX_BROWSER_LINK && links.inBrowser()) {
@@ -112,6 +128,8 @@ function createWindow(links: LinkRouting): BrowserWindow {
 			} else {
 				void shell.openExternal(url);
 			}
+		} else if (isLocalFileUrl(url)) {
+			openLocalFile(url, disposition === "new-window");
 		}
 		return { action: "deny" };
 	});
@@ -119,6 +137,7 @@ function createWindow(links: LinkRouting): BrowserWindow {
 		if (url !== window.webContents.getURL()) {
 			event.preventDefault();
 			if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
+			else if (isLocalFileUrl(url)) openLocalFile(url, false);
 		}
 	});
 

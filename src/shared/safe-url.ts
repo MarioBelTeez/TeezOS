@@ -6,6 +6,12 @@
  * Links: http(s), mailto, in-page anchors and plain relative paths (the window
  * never navigates to those). Images: http(s) and inline raster data only.
  */
+export function isLocalFileUrl(url: string): boolean {
+	const value = url.trim();
+	// Require exactly three slashes (`file:///...`) and never a UNC/network path (`file://host/...` or `file:////...`).
+	return /^file:\/\/\/(?!\/|\\)/i.test(value);
+}
+
 export function safeMarkdownUrl(url: string, key: string): string {
 	const value = url.trim();
 	if (!value || /^[\\/][\\/]/.test(value)) return "";
@@ -15,5 +21,6 @@ export function safeMarkdownUrl(url: string, key: string): string {
 		return /^data:image\/(png|jpeg|gif|webp);/i.test(value) ? value : "";
 	}
 	if (scheme === undefined) return value;
+	if (scheme === "file") return isLocalFileUrl(value) ? value : "";
 	return scheme === "http" || scheme === "https" || scheme === "mailto" ? value : "";
 }

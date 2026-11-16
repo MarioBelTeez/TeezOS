@@ -10,6 +10,7 @@ describe("safeMarkdownUrl", () => {
 		["docs/setup.md", "href", "docs/setup.md"],
 		["https://example.com/x.png", "src", "https://example.com/x.png"],
 		["data:image/png;base64,AAAA", "src", "data:image/png;base64,AAAA"],
+		["file:///C:/Users/rayan/Downloads/doc.pdf", "href", "file:///C:/Users/rayan/Downloads/doc.pdf"],
 	])("keeps %s as %s", (url, key, expected) => {
 		expect(safeMarkdownUrl(url, key)).toBe(expected);
 	});
@@ -21,7 +22,9 @@ describe("safeMarkdownUrl", () => {
 		["\\\\attacker.example\\s\\x.png", "src"],
 		["/\\attacker.example/x.png", "src"],
 		["file://attacker.example/s/x.png", "src"],
-		["file:///C:/Users/user/.ssh/id_ed25519", "href"],
+		["file://attacker.example/s/x.png", "href"],
+		["file:////attacker.example/s/x.png", "href"],
+		["file:///C:/Users/user/.ssh/id_ed25519", "src"],
 		["javascript:alert(1)", "href"],
 		["JaVaScRiPt:alert(1)", "href"],
 		["data:text/html,<script>", "href"],
