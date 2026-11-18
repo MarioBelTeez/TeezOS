@@ -61,4 +61,17 @@ describe("AgyEventConverter", () => {
 		expect(converter.push({ event: "something_new", x: 1 })).toEqual([]);
 		expect(converter.push("garbage")).toEqual([]);
 	});
+
+	test("trailing malformed function call error after streamed text ends the turn cleanly", () => {
+		const converter = new AgyEventConverter({ model: "gemini-4-hydrogen-medium" });
+		expect(converter.push({ event: "step_update", step_update: { conversation_id: "c", step_type: "agent_response", text_delta: "Answer" } })).toEqual([
+			{ kind: "text-delta", sessionId: "c", text: "Answer" },
+		]);
+		const events = converter.push({
+			event: "result",
+			result: { conversation_id: "c", status: "ERROR", response: "", error: "Malformed function call: Function call is empty\nRetries remaining: 3", duration_seconds: 1 },
+		});
+		expect(events).toHaveLength(1);
+		expect(events[0]).toMatchObject({ kind: "turn-end", sessionId: "c", ok: true });
+	});
 });

@@ -25,6 +25,7 @@ export function agyContextWindow(model: string): number {
 export class AgyEventConverter {
 	#conversationId = "";
 	#lastStepTokens = 0;
+	#sawText = false;
 	readonly #model: string;
 
 	constructor(options: { readonly model: string }) {
@@ -78,6 +79,7 @@ export class AgyEventConverter {
 			const stepTokens = usage ? num(usage["total_tokens"]) : 0;
 			if (stepTokens > 0) this.#lastStepTokens = stepTokens;
 			const text = str(step["text_delta"]);
+			if (text) this.#sawText = true;
 			return text ? [{ kind: "text-delta", sessionId, text }] : [];
 		}
 
@@ -112,13 +114,14 @@ export class AgyEventConverter {
 		if (sessionId) this.#conversationId = sessionId;
 		const status = str(result["status"]);
 
-		if (status !== "SUCCESS") {
+		const errorMessage = str(result["error"]) || str(result["response"]);
+		if (status !== "SUCCESS" && !(this.#sawText && /malformed function call/i.test(errorMessage))) {
 			return [
 				{
 					kind: "run-error",
 					sessionId,
 					reason: "agy-error",
-					message: str(result["error"]) || str(result["response"]) || `Antigravity ended with ${status || "no status"}.`,
+					message: errorMessage || `Antigravity ended with ${status || "no status"}.`,
 				},
 			];
 		}
