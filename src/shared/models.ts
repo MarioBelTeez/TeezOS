@@ -9,7 +9,7 @@ import type { AgentKind } from "../main/agents/registry.ts";
  * setting.
  */
 
-export type Effort = "low" | "medium" | "high";
+export type Effort = "low" | "medium" | "high" | "xhigh";
 export type ModelChoice = { readonly id: string; readonly label: string; readonly agent: AgentKind };
 /** A model as `agy models` lists it. */
 export type ListedModel = { readonly id: string; readonly label: string };
@@ -19,12 +19,19 @@ export const CLAUDE_CHOICES: readonly ModelChoice[] = [
 	{ id: "sonnet", label: "Sonnet 5.5", agent: "claude" },
 ];
 
-const LEVEL_SUFFIX = /-(?:low|medium|high|thinking)$/;
-const LEVEL_LABEL = /\s*\((?:low|medium|high|thinking)\)$/i;
+const LEVEL_SUFFIX = /-(?:low|medium|high|xhigh|thinking)$/;
+const LEVEL_LABEL = /\s*\((?:low|medium|high|xhigh|extra\s+high|thinking)\)$/i;
+const EFFORT_SUFFIX = /-(low|medium|high|xhigh)$/;
 
 /** "gemini-3.8-flash-high" → "gemini-3.8-flash"; an id without a level is its own family. */
 export function geminiFamily(id: string): string {
 	return id.replace(LEVEL_SUFFIX, "");
+}
+
+/** The trailing effort level encoded in a model id, or null when the id carries no effort suffix. */
+export function effortOfModelId(model: string): Effort | null {
+	const match = EFFORT_SUFFIX.exec(model);
+	return match ? (match[1] as Effort) : null;
 }
 
 /**
@@ -48,9 +55,10 @@ export function modelChoices(available: readonly ListedModel[], codex: readonly 
 }
 
 const FALLBACK: Readonly<Record<Effort, readonly Effort[]>> = {
-	low: ["low", "medium", "high"],
-	medium: ["medium", "high", "low"],
-	high: ["high", "medium", "low"],
+	low: ["low", "medium", "high", "xhigh"],
+	medium: ["medium", "high", "low", "xhigh"],
+	high: ["high", "xhigh", "medium", "low"],
+	xhigh: ["xhigh", "high", "medium", "low"],
 };
 
 export function agyModelId(family: string, effort: Effort, available: readonly string[]): string | null {
@@ -58,6 +66,8 @@ export function agyModelId(family: string, effort: Effort, available: readonly s
 		const id = `${family}-${level}`;
 		if (available.includes(id)) return id;
 	}
+	if (available.includes(family)) return family;
+	if (available.includes(`${family}-thinking`)) return `${family}-thinking`;
 	return null;
 }
 

@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { agentDefaults } from "../../shared/agent-defaults.ts";
 import { ChevronDown, MessageCircleQuestionMark, SendHorizonal, Slash, Square } from "lucide-react";
 import type { Workspace } from "../../main/settings/store.ts";
-import { CLAUDE_CHOICES, choiceOf, geminiAtEffort, modelForChoice, type Effort, type ModelChoice } from "../../shared/models.ts";
+import { CLAUDE_CHOICES, choiceOf, effortOfModelId, geminiAtEffort, modelForChoice, type Effort, type ModelChoice } from "../../shared/models.ts";
 import { effortOptions, isEffort } from "../../shared/effort.ts";
 
 const isAgyEffort = (value: string): value is Effort => isEffort("agy", value);
@@ -196,6 +196,12 @@ function ModelPicker({ workspace, chat }: { readonly workspace: Workspace; reado
 		if (plan.kind === "in-place") {
 			if (!from || plan.model === from.model) return;
 			useChats.getState().setModel(from.chatId, plan.model);
+			if (from.agent === "agy") {
+				const resolvedEffort = effortOfModelId(plan.model);
+				if (resolvedEffort && resolvedEffort !== from.effort) {
+					useChats.getState().setEffort(from.chatId, resolvedEffort);
+				}
+			}
 			return;
 		}
 		const permission = settings ? agentDefaults(plan.agent, settings.agent).permission : undefined;
@@ -203,6 +209,7 @@ function ModelPicker({ workspace, chat }: { readonly workspace: Workspace; reado
 			agent: plan.agent,
 			model: plan.model,
 			...(permission ? { permission } : {}),
+			...(plan.agent === "agy" ? { effort: effortOfModelId(plan.model) ?? effort } : {}),
 			// A hand-over continues the same work: the tab keeps its name rather
 			// than taking the first words of "Context from the … chat".
 			...(from && plan.prefill ? { title: from.title } : {}),
@@ -298,9 +305,13 @@ function EffortPicker({ chat }: { readonly chat: Chat }): React.JSX.Element {
 			onChange={(effort) => {
 				if (effort === chat.effort) return;
 				const chats = useChats.getState();
-				chats.setEffort(chat.chatId, effort);
-				if (chat.agent === "claude") return;
+				if (chat.agent !== "agy") {
+					chats.setEffort(chat.chatId, effort);
+					return;
+				}
 				const variant = geminiAtEffort(chat.model, effort as Effort, agyModels.map((m) => m.id));
+				const resolvedEffort = effortOfModelId(variant ?? chat.model) ?? effort;
+				if (resolvedEffort !== chat.effort) chats.setEffort(chat.chatId, resolvedEffort);
 				if (variant) chats.setModel(chat.chatId, variant);
 			}}
 		/>

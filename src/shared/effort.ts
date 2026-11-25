@@ -4,13 +4,13 @@ import type { AgentKind } from "../main/settings/store.ts";
  * How hard the agent thinks, per chat, beside the model and mode pickers.
  * Claude takes Claude Code's levels ("" sends none: the model's own default);
  * Claude Code runs a level the model lacks at the nearest one it has (Max
- * becomes High on a model without Max). Antigravity has three, which pick the
+ * becomes High on a model without Max). Antigravity has four, which pick the
  * Gemini model's thinking variant and go to `agy --effort`.
  */
 
 export const CLAUDE_EFFORTS = ["", "low", "medium", "high", "xhigh", "max"] as const;
 export type ClaudeEffort = (typeof CLAUDE_EFFORTS)[number];
-export const AGY_EFFORTS = ["low", "medium", "high"] as const;
+export const AGY_EFFORTS = ["low", "medium", "high", "xhigh"] as const;
 export type AgyEffort = (typeof AGY_EFFORTS)[number];
 
 /** Codex: the three levels every Codex model supports (some also offer xhigh, max, ultra). */
@@ -31,6 +31,7 @@ export const AGY_EFFORT_OPTIONS: readonly EffortOption[] = [
 	{ id: "low", label: "Low", hint: "Fastest" },
 	{ id: "medium", label: "Medium", hint: "Balanced" },
 	{ id: "high", label: "High", hint: "Thinks harder" },
+	{ id: "xhigh", label: "Extra high", hint: "Thinks hardest" },
 ];
 
 export const CODEX_EFFORT_OPTIONS: readonly EffortOption[] = [

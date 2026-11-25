@@ -7,6 +7,7 @@ import type { ChatImage } from "../../shared/images.ts";
 import { appendAttachedImages, writeTurnImages } from "../agents/turn-images.ts";
 import type { AgentSession, SlashCommandInfo } from "../agents/registry.ts";
 import { AgyEventConverter } from "./events.ts";
+import { AgySubagentWatcher, parseSubagentLaunch, type AgySubagentWatcherOptions, type SubagentWatcherLike } from "./subagents.ts";
 
 /**
  * One Antigravity chat. Each message is its own `agy` run, continued with
@@ -50,6 +51,8 @@ export type AgySessionDeps = {
 	/** Ends the process and anything it started. */
 	readonly killTree?: (child: ChildLike) => void;
 	readonly now?: () => number;
+	/** Watches a launched Antigravity subagent's transcript; injected in tests. */
+	readonly createSubagentWatcher?: (options: AgySubagentWatcherOptions) => SubagentWatcherLike;
 };
 
 export const defaultSpawn: SpawnFn = (file, args, options) =>
@@ -102,6 +105,8 @@ export class AgySession implements AgentSession {
 	#stopped = false;
 	#startedAt = 0;
 	#disposed = false;
+	readonly #pendingSubagents = new Set<string>();
+	readonly #watchers = new Map<string, SubagentWatcherLike>();
 
 	constructor(deps: AgySessionDeps) {
 		this.#deps = deps;
@@ -131,6 +136,7 @@ export class AgySession implements AgentSession {
 
 	async stop(): Promise<void> {
 		this.#queue = [];
+		this.#stopWatchers();
 		if (!this.#child) return;
 		this.#stopped = true;
 		(this.#deps.killTree ?? defaultKillTree)(this.#child);
@@ -163,6 +169,8 @@ export class AgySession implements AgentSession {
 	}
 
 	args(extraDirs: readonly string[] = []): string[] {
+		const effortMatch = /-(low|medium|high|xhigh)$/.exec(this.#model);
+		const effectiveEffort = effortMatch?.[1] ?? (this.#effort || "medium");
 		return [
 			"--input-format",
 			"stream-json",
@@ -172,7 +180,7 @@ export class AgySession implements AgentSession {
 			this.#deps.cwd,
 			...extraDirs.flatMap((dir) => ["--add-dir", dir]),
 			"--effort",
-			this.#effort || "medium",
+			effectiveEffort,
 			...(this.#model ? ["--model", this.#model] : []),
 			...(this.#conversationId ? ["--conversation", this.#conversationId] : []),
 			...permissionFlags(this.#permission),
@@ -213,6 +221,18 @@ export class AgySession implements AgentSession {
 			}
 			for (const event of converter.push(parsed)) {
 				if (event.kind === "turn-end" || (event.kind === "run-error" && event.reason === "agy-error")) sawResult = true;
+				if (event.kind === "tool-start" && event.name === "invoke_subagent") {
+					this.#pendingSubagents.add(event.toolUseId);
+				}
+				if (event.kind === "tool-end" && this.#pendingSubagents.delete(event.toolUseId)) {
+					if (!event.isError) {
+						const launch = parseSubagentLaunch(event.content);
+						if (launch) {
+							this.#startWatcher(event.toolUseId, event.sessionId || this.#conversationId, launch.logPath);
+							continue;
+						}
+					}
+				}
 				this.#emit(event);
 			}
 			if (converter.conversationId) this.#conversationId = converter.conversationId;
@@ -249,6 +269,30 @@ export class AgySession implements AgentSession {
 
 		child.stdin.on("error", () => undefined);
 		child.stdin.end(`${JSON.stringify({ event: "user", message: { content: prompt } })}\n`);
+	}
+
+	#startWatcher(parentToolUseId: string, sessionId: string, logPath: string): void {
+		this.#watchers.get(parentToolUseId)?.stop();
+		const create = this.#deps.createSubagentWatcher ?? ((opts) => new AgySubagentWatcher(opts));
+		let done = false;
+		const watcher = create({
+			parentToolUseId,
+			sessionId,
+			logPath,
+			onEvent: (event) => this.#emit(event),
+			onDone: () => {
+				done = true;
+				this.#watchers.delete(parentToolUseId);
+			},
+		});
+		if (!done) this.#watchers.set(parentToolUseId, watcher);
+	}
+
+	#stopWatchers(): void {
+		this.#pendingSubagents.clear();
+		const active = [...this.#watchers.values()];
+		this.#watchers.clear();
+		for (const watcher of active) watcher.stop();
 	}
 
 	#emit(event: UiEvent): void {

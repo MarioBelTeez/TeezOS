@@ -3,6 +3,7 @@ import {
 	CLAUDE_CHOICES,
 	agyModelId,
 	choiceOf,
+	effortOfModelId,
 	geminiChoices,
 	geminiFamily,
 	modelChoices,
@@ -44,8 +45,24 @@ describe("geminiFamily", () => {
 	test("strips a trailing thinking level only", () => {
 		expect(geminiFamily("gemini-3.8-flash-high")).toBe("gemini-3.8-flash");
 		expect(geminiFamily("gemini-3.8-flash-medium")).toBe("gemini-3.8-flash");
+		expect(geminiFamily("gemini-4-neon-xhigh")).toBe("gemini-4-neon");
 		expect(geminiFamily("gemini-3.8-flash")).toBe("gemini-3.8-flash");
+		expect(geminiFamily("gemini-pro-orchestrator-neon")).toBe("gemini-pro-orchestrator-neon");
 		expect(geminiFamily("gemini-high-speed")).toBe("gemini-high-speed");
+	});
+});
+
+describe("effortOfModelId", () => {
+	test("returns trailing effort level or null when absent", () => {
+		expect(effortOfModelId("gemini-4-neon-xhigh")).toBe("xhigh");
+		expect(effortOfModelId("gemini-4-argon-high")).toBe("high");
+		expect(effortOfModelId("gemini-3.8-flash-medium")).toBe("medium");
+		expect(effortOfModelId("claude-opus-5-5-low")).toBe("low");
+		expect(effortOfModelId("gemini-pro-orchestrator-neon")).toBeNull();
+		expect(effortOfModelId("gemini-pro-orchestrator")).toBeNull();
+		expect(effortOfModelId("claude-opus-4-6-thinking")).toBeNull();
+		expect(effortOfModelId("gemini-high-speed")).toBeNull();
+		expect(effortOfModelId("")).toBeNull();
 	});
 });
 
@@ -91,6 +108,25 @@ describe("geminiChoices", () => {
 		expect(geminiChoices([{ id: "gemini-nano", label: "Gemini Nano" }])).toEqual([{ id: "gemini-nano", label: "Gemini Nano", agent: "agy" }]);
 	});
 
+	test("groups xhigh variants into their family and keeps levelless orchestrators", () => {
+		const choices = geminiChoices([
+			{ id: "gemini-4-neon-xhigh", label: "Gemini 4 Neon (XHigh)" },
+			{ id: "gemini-4-neon-high", label: "Gemini 4 Neon (High)" },
+			{ id: "gemini-4-neon-medium", label: "Gemini 4 Neon (Medium)" },
+			{ id: "gemini-4-neon-low", label: "Gemini 4 Neon (Low)" },
+			{ id: "gemini-4-hydrogen-xhigh", label: "Gemini 4 Hydrogen (Extra High)" },
+			{ id: "gemini-4-hydrogen-high", label: "Gemini 4 Hydrogen (High)" },
+			{ id: "gemini-pro-orchestrator-neon", label: "Gemini Pro Orchestrator Neon" },
+			{ id: "gemini-pro-orchestrator", label: "Gemini Pro Orchestrator" },
+		]);
+		expect(choices).toEqual([
+			{ id: "gemini-4-neon", label: "Gemini 4 Neon", agent: "agy" },
+			{ id: "gemini-4-hydrogen", label: "Gemini 4 Hydrogen", agent: "agy" },
+			{ id: "gemini-pro-orchestrator-neon", label: "Gemini Pro Orchestrator Neon", agent: "agy" },
+			{ id: "gemini-pro-orchestrator", label: "Gemini Pro Orchestrator", agent: "agy" },
+		]);
+	});
+
 	test("an empty list (agy missing) offers no Gemini", () => {
 		expect(geminiChoices([])).toEqual([]);
 	});
@@ -103,13 +139,37 @@ describe("modelChoices", () => {
 });
 
 describe("agyModelId", () => {
-	const available = [...ids(LISTED), "gemini-argon-4-high", "gemini-argon-4-low"];
+	const available = [
+		...ids(LISTED),
+		"gemini-argon-4-high",
+		"gemini-argon-4-low",
+		"gemini-4-neon-xhigh",
+		"gemini-4-neon-high",
+		"gemini-4-neon-medium",
+		"gemini-4-neon-low",
+		"gemini-4-argon-high",
+		"gemini-4-argon-medium",
+		"gemini-4-argon-low",
+		"gemini-pro-orchestrator-neon",
+		"gemini-pro-orchestrator",
+	];
 	test("exact effort when listed", () => {
 		expect(agyModelId("gemini-3.8-flash", "medium", available)).toBe("gemini-3.8-flash-medium");
+		expect(agyModelId("gemini-4-neon", "xhigh", available)).toBe("gemini-4-neon-xhigh");
 	});
 	test("no medium: medium falls to high, then low", () => {
 		expect(agyModelId("gemini-argon-4", "medium", available)).toBe("gemini-argon-4-high");
 		expect(agyModelId("gemini-argon-4", "medium", ["gemini-argon-4-low"])).toBe("gemini-argon-4-low");
+	});
+	test("xhigh falls back to high when a model lacks xhigh; high falls back to xhigh before medium", () => {
+		expect(agyModelId("gemini-4-argon", "xhigh", available)).toBe("gemini-4-argon-high");
+		expect(agyModelId("gemini-4-neon", "high", ["gemini-4-neon-xhigh", "gemini-4-neon-medium"])).toBe("gemini-4-neon-xhigh");
+	});
+	test("levelless and thinking-only models resolve to themselves", () => {
+		expect(agyModelId("gemini-pro-orchestrator-neon", "high", available)).toBe("gemini-pro-orchestrator-neon");
+		expect(agyModelId("gemini-pro-orchestrator", "xhigh", available)).toBe("gemini-pro-orchestrator");
+		expect(agyModelId("claude-opus-4-6", "high", available)).toBe("claude-opus-4-6-thinking");
+		expect(agyModelId("claude-sonnet-4-6", "medium", available)).toBe("claude-sonnet-4-6");
 	});
 	test("nothing listed means null", () => {
 		expect(agyModelId("gemini-3.8-flash", "high", [])).toBeNull();
@@ -184,6 +244,14 @@ describe("geminiAtEffort", () => {
 		"gemini-3.8-flash-medium",
 		"gemini-3.8-flash-low",
 		"gemini-3.1-pro-high",
+		"gemini-4-neon-xhigh",
+		"gemini-4-neon-high",
+		"gemini-4-neon-medium",
+		"gemini-4-neon-low",
+		"gemini-4-argon-high",
+		"gemini-4-argon-medium",
+		"gemini-4-argon-low",
+		"gemini-pro-orchestrator-neon",
 		"claude-opus-5-5-high",
 		"claude-opus-5-5-medium",
 		"claude-opus-5-5-low",
@@ -191,10 +259,15 @@ describe("geminiAtEffort", () => {
 	test("the same family at the new level", () => {
 		expect(geminiAtEffort("gemini-3.8-flash-medium", "high", available)).toBe("gemini-3.8-flash-high");
 		expect(geminiAtEffort("gemini-3.8-flash-high", "low", available)).toBe("gemini-3.8-flash-low");
+		expect(geminiAtEffort("gemini-4-neon-xhigh", "medium", available)).toBe("gemini-4-neon-medium");
+		expect(geminiAtEffort("gemini-4-neon-high", "xhigh", available)).toBe("gemini-4-neon-xhigh");
 		expect(geminiAtEffort("claude-opus-5-5-medium", "high", available)).toBe("claude-opus-5-5-high");
 		expect(geminiAtEffort("claude-opus-5-5-high", "low", available)).toBe("claude-opus-5-5-low");
 	});
 	test("the nearest level when that one is missing; null when nothing would change", () => {
+		expect(geminiAtEffort("gemini-4-argon-medium", "xhigh", available)).toBe("gemini-4-argon-high");
+		expect(geminiAtEffort("gemini-4-argon-high", "xhigh", available)).toBeNull();
+		expect(geminiAtEffort("gemini-pro-orchestrator-neon", "xhigh", available)).toBeNull();
 		expect(geminiAtEffort("gemini-3.1-pro-high", "low", available)).toBeNull();
 		expect(geminiAtEffort("gemini-3.8-flash-high", "high", available)).toBeNull();
 		expect(geminiAtEffort("", "high", available)).toBeNull();

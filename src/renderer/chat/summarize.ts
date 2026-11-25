@@ -5,8 +5,11 @@
  */
 export function summarize(input: Readonly<Record<string, unknown>>): string {
 	const interesting = [
+		"toolSummary",
+		"Role",
 		"file_path",
 		"path",
+		"Path",
 		"AbsolutePath",
 		"command",
 		"CommandLine",
@@ -15,6 +18,7 @@ export function summarize(input: Readonly<Record<string, unknown>>): string {
 		"url",
 		"description",
 		"prompt",
+		"Prompt",
 	];
 	for (const key of interesting) {
 		const value = input[key];

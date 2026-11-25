@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { CLAUDE_EFFORTS, type ClaudeEffort } from "../../shared/effort.ts";
+import { AGY_EFFORTS, CLAUDE_EFFORTS, type AgyEffort, type ClaudeEffort } from "../../shared/effort.ts";
 import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { DEFAULT_DOCK, DEFAULT_VIEW_ORDER, normalizeDock, normalizeViews, type Dock, type ViewId } from "../../shared/dock.ts";
@@ -33,7 +33,7 @@ export type AgentKind = "claude" | "agy" | "codex";
 export const CLAUDE_PERMISSION_MODES = ["default", "acceptEdits", "auto", "plan", "bypassPermissions"] as const;
 export type ClaudePermission = (typeof CLAUDE_PERMISSION_MODES)[number];
 export type AgyPermission = "ask" | "plan" | "accept-edits" | "full-auto";
-export type AgyEffort = "low" | "medium" | "high";
+export type { AgyEffort };
 /** Codex (ChatGPT) modes: ask before every command and edit; auto-accept edits inside the workspace; no asking. */
 export const CODEX_PERMISSION_MODES = ["ask", "auto-edit", "full-access"] as const;
 export type CodexPermission = (typeof CODEX_PERMISSION_MODES)[number];
@@ -225,7 +225,7 @@ export function normalizeSettings(raw: unknown): Settings {
 				["ask", "plan", "accept-edits", "full-auto"],
 				d.agent.agyPermission,
 			),
-			agyEffort: pick(agent["agyEffort"], ["low", "medium", "high"], d.agent.agyEffort),
+			agyEffort: pick(agent["agyEffort"], AGY_EFFORTS, d.agent.agyEffort),
 			codexModel: str(agent["codexModel"]) ?? d.agent.codexModel,
 			codexPermission: pick(agent["codexPermission"], CODEX_PERMISSION_MODES, d.agent.codexPermission),
 			codexEffort: pick(agent["codexEffort"], ["low", "medium", "high"], d.agent.codexEffort),

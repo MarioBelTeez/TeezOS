@@ -27,6 +27,7 @@ export type AgentNode = {
 	readonly endedAt: number | null;
 	readonly current: string;
 	readonly steps: readonly AgentStep[];
+	readonly background?: boolean;
 };
 export type AgentTree = { readonly nodes: Readonly<Record<string, AgentNode>>; readonly order: readonly string[] };
 export type ChatMeta = { readonly chatId: string; readonly title: string; readonly agent: "claude" | "agy" | "codex"; readonly model: string };
@@ -118,12 +119,24 @@ function isWithin(tree: AgentTree, id: string, ancestor: string): boolean {
 	return false;
 }
 
+/** True when `id` (or an ancestor below `stopAt`) is a background subagent. */
+function isWithinBackground(tree: AgentTree, id: string, stopAt: string): boolean {
+	let current: string | null = id;
+	for (let depth = 0; current !== null && current !== stopAt && depth < MAX_DEPTH; depth += 1) {
+		const node: AgentNode | undefined = tree.nodes[current];
+		if (node?.background) return true;
+		current = node?.parentId ?? null;
+	}
+	return false;
+}
+
 /** Ends `id` and everything still running under it with `status`; the same tree when nothing ran. */
-function closeSubtree(tree: AgentTree, id: string, status: AgentStatus, now: number): AgentTree {
+function closeSubtree(tree: AgentTree, id: string, status: AgentStatus, now: number, preserveBackground = false): AgentTree {
 	let nodes: Record<string, AgentNode> | null = null;
 	for (const nodeId of tree.order) {
 		const node = tree.nodes[nodeId];
 		if (!node || node.status !== "running" || !isWithin(tree, nodeId, id)) continue;
+		if (preserveBackground && nodeId !== id && isWithinBackground(tree, nodeId, id)) continue;
 		nodes ??= { ...tree.nodes };
 		nodes[nodeId] = { ...node, status, endedAt: now };
 	}
@@ -207,8 +220,9 @@ function ensureRunning(tree: AgentTree, meta: ChatMeta, now: number): AgentTree 
 function toolStart(tree: AgentTree, meta: ChatMeta, event: Extract<UiEvent, { kind: "tool-start" }>, now: number): AgentTree {
 	const id = toolId(event.toolUseId);
 	if (tree.nodes[id]) return tree;
-	let next = ensureRunning(tree, meta, now);
 	const parentKey = event.parentToolUseId ? toolId(event.parentToolUseId) : null;
+	const keepRoot = parentKey !== null && Boolean(tree.nodes[parentKey]) && Boolean(tree.nodes[chatRootId(meta.chatId)]);
+	let next = keepRoot ? tree : ensureRunning(tree, meta, now);
 	const parentId = parentKey && next.nodes[parentKey] ? parentKey : chatRootId(meta.chatId);
 	const parent = next.nodes[parentId];
 	if (!parent) return next;
@@ -219,8 +233,15 @@ function toolStart(tree: AgentTree, meta: ChatMeta, event: Extract<UiEvent, { ki
 		next = put(next, withStep(parent, `${event.name}: ${oneLine(title)}`, now));
 		return put(next, newNode(id, parentId, "subagent", oneLine(title), str(input["model"]), now));
 	}
-	const command = str(input["command"]);
-	if ((event.name === "Bash" || event.name === "PowerShell") && isAgyCommand(command)) {
+	if (event.name === "invoke_subagent") {
+		const title = str(input["Role"]) || str(input["TypeName"]) || str(input["description"]) || "Subagent";
+		const rawModel = str(input["Model"]) || str(input["model"]);
+		const model = !rawModel || rawModel === "inherit" ? meta.model : rawModel;
+		next = put(next, withStep(parent, `${event.name}: ${oneLine(title)}`, now));
+		return put(next, { ...newNode(id, parentId, "subagent", oneLine(title), model, now), background: true });
+	}
+	const command = str(input["command"]) || str(input["CommandLine"]);
+	if ((event.name === "Bash" || event.name === "PowerShell" || event.name === "run_command") && isAgyCommand(command)) {
 		const { title, model } = agyTitle(command);
 		next = put(next, withStep(parent, `Antigravity: ${title}`, now));
 		return put(next, newNode(id, parentId, "antigravity", title, model, now));
@@ -258,7 +279,7 @@ export function applyChatEvent(tree: AgentTree, meta: ChatMeta, event: UiEvent, 
 }
 
 function endTurn(tree: AgentTree, chatId: string, status: AgentStatus, now: number): AgentTree {
-	const closed = closeSubtree(tree, chatRootId(chatId), status, now);
+	const closed = closeSubtree(tree, chatRootId(chatId), status, now, status === "done");
 	return closed === tree ? tree : prune(closed, now);
 }
 

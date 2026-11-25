@@ -3,6 +3,7 @@ import type { Preset } from "../../shared/presets.ts";
 import { AGY_PERMISSIONS, CLAUDE_PERMISSIONS, CODEX_PERMISSIONS } from "../chat/agent-options.ts";
 import { agentDefaults } from "../../shared/agent-defaults.ts";
 import { isEffort } from "../../shared/effort.ts";
+import { effortOfModelId } from "../../shared/models.ts";
 
 /**
  * A preset's chat defaults: which agent new chats use, on which model, in
@@ -40,7 +41,7 @@ export function agentPatchOf(chat: PresetChat): Partial<AgentSettings> {
 	}
 	const known = AGY_PERMISSIONS.some((p) => p.id === chat.permission);
 	// A preset from before 0.3.8 has no effort; its Gemini model's level suffix says what it was.
-	const agyEffort = effortKnown ? chat.effort : /-(low|medium|high)$/.exec(chat.model)?.[1];
+	const agyEffort = effortKnown ? chat.effort : effortOfModelId(chat.model) ?? undefined;
 	return {
 		defaultAgent: "agy",
 		agyModel: chat.model,

@@ -2,14 +2,15 @@ import { describe, expect, test } from "vitest";
 import { effortLabel, effortOptions, isEffort } from "./effort.ts";
 
 describe("effort", () => {
-	test("Claude has Claude Code's levels plus the model default; Antigravity has three", () => {
+	test("Claude has Claude Code's levels plus the model default; Antigravity has four", () => {
 		expect(effortOptions("claude").map((o) => o.id)).toEqual(["", "low", "medium", "high", "xhigh", "max"]);
-		expect(effortOptions("agy").map((o) => o.id)).toEqual(["low", "medium", "high"]);
+		expect(effortOptions("agy").map((o) => o.id)).toEqual(["low", "medium", "high", "xhigh"]);
 	});
 
 	test("only an agent's own levels are valid", () => {
 		expect(isEffort("claude", "max")).toBe(true);
 		expect(isEffort("claude", "")).toBe(true);
+		expect(isEffort("agy", "xhigh")).toBe(true);
 		expect(isEffort("agy", "max")).toBe(false);
 		expect(isEffort("agy", "")).toBe(false);
 		expect(isEffort("claude", "ultra")).toBe(false);
@@ -27,5 +28,6 @@ describe("effort", () => {
 		expect(effortLabel("claude", "")).toBe("Default");
 		expect(effortLabel("claude", "xhigh")).toBe("Extra high");
 		expect(effortLabel("agy", "high")).toBe("High");
+		expect(effortLabel("agy", "xhigh")).toBe("Extra high");
 	});
 });
