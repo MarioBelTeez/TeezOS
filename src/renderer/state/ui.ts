@@ -1,6 +1,16 @@
 import { create } from "zustand";
 import type { InsertMode } from "../chat/draft.ts";
+import type { PastedImage } from "../chat/pasted-images.ts";
 import type { SettingsPageId } from "../views/settings/nav.ts";
+
+/** A document, SVG, HTML mockup, or image sent to the Canvas Viewer. */
+export type CanvasDocument = {
+	readonly title: string;
+	readonly kind: "markdown" | "svg" | "html" | "image";
+	readonly content: string;
+	readonly sourcePath?: string;
+	readonly nonce: number;
+};
 
 /** What the window is showing right now. Not persisted: it is cheap to rebuild. */
 
@@ -43,6 +53,16 @@ type UiState = {
 	readonly setDialog: (dialog: string | null) => void;
 	/** Text the chat composer should take in, e.g. "@src/main/index.ts". */
 	readonly composerInsert: { readonly text: string; readonly mode: InsertMode; readonly nonce: number } | null;
+	/** An image (e.g. from the Sketchpad) to attach into the active chat composer. */
+	readonly composerImageInsert: { readonly image: PastedImage; readonly caption?: string; readonly nonce: number } | null;
+	/** Forces the given chat to scroll to its newest message (e.g. after clicking a desktop notification). */
+	readonly chatScrollToBottom: { readonly chatId: string; readonly nonce: number } | null;
+	/** Active document/diagram loaded into the Canvas Viewer. */
+	readonly canvasDoc: CanvasDocument | null;
+	/** Which tab of the Canvas panel is open. */
+	readonly canvasTab: "sketchpad" | "viewer";
+	/** Optional background data URL stamped into the Sketchpad for annotation. */
+	readonly sketchBackground: { readonly dataUrl: string; readonly nonce: number } | null;
 	/** Which of the composer's menus is open. One at a time. */
 	readonly composerMenu: ComposerMenu | null;
 	readonly setComposerMenu: (menu: ComposerMenu | null) => void;
@@ -59,6 +79,13 @@ type UiState = {
 	/** `prefill` puts the text before the draft (a hand-over); the default appends (a mention). */
 	readonly insertIntoComposer: (text: string, options?: { readonly mode?: InsertMode }) => void;
 	readonly consumeComposerInsert: () => void;
+	readonly insertImageIntoComposer: (image: PastedImage, caption?: string) => void;
+	readonly consumeComposerImageInsert: () => void;
+	readonly requestChatScrollToBottom: (chatId: string) => void;
+	readonly openInCanvasViewer: (doc: Omit<CanvasDocument, "nonce">) => void;
+	readonly setCanvasTab: (tab: "sketchpad" | "viewer") => void;
+	readonly annotateInSketchpad: (dataUrl: string) => void;
+	readonly consumeSketchBackground: () => void;
 };
 
 let toastId = 0;
@@ -73,6 +100,11 @@ export const useUi = create<UiState>((set, get) => ({
 	dialog: null,
 	setDialog: (dialog) => set({ dialog }),
 	composerInsert: null,
+	composerImageInsert: null,
+	chatScrollToBottom: null,
+	canvasDoc: null,
+	canvasTab: "sketchpad",
+	sketchBackground: null,
 	composerMenu: null,
 	setComposerMenu: (composerMenu) => set({ composerMenu }),
 	pendingRun: null,
@@ -92,4 +124,27 @@ export const useUi = create<UiState>((set, get) => ({
 	insertIntoComposer: (text, options) =>
 		set({ composerInsert: { text, mode: options?.mode ?? "append", nonce: (get().composerInsert?.nonce ?? 0) + 1 } }),
 	consumeComposerInsert: () => set({ composerInsert: null }),
+	insertImageIntoComposer: (image, caption) =>
+		set({
+			composerImageInsert: {
+				image,
+				...(caption !== undefined ? { caption } : {}),
+				nonce: (get().composerImageInsert?.nonce ?? 0) + 1,
+			},
+		}),
+	consumeComposerImageInsert: () => set({ composerImageInsert: null }),
+	requestChatScrollToBottom: (chatId) =>
+		set({ chatScrollToBottom: { chatId, nonce: (get().chatScrollToBottom?.nonce ?? 0) + 1 } }),
+	openInCanvasViewer: (doc) =>
+		set({
+			canvasTab: "viewer",
+			canvasDoc: { ...doc, nonce: (get().canvasDoc?.nonce ?? 0) + 1 },
+		}),
+	setCanvasTab: (canvasTab) => set({ canvasTab }),
+	annotateInSketchpad: (dataUrl) =>
+		set({
+			canvasTab: "sketchpad",
+			sketchBackground: { dataUrl, nonce: (get().sketchBackground?.nonce ?? 0) + 1 },
+		}),
+	consumeSketchBackground: () => set({ sketchBackground: null }),
 }));

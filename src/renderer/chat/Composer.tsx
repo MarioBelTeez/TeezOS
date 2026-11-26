@@ -47,6 +47,7 @@ export function Composer({
 	const footer = useRef<HTMLElement>(null);
 	const menuHandle = useRef<CommandMenuHandle>(null);
 	const insert = useUi((s) => s.composerInsert);
+	const imageInsert = useUi((s) => s.composerImageInsert);
 	const menu = useUi((s) => s.composerMenu);
 	const setMenu = useUi((s) => s.setComposerMenu);
 	// Typed: the box's text after "/" is the menu's filter. Button: it has a field of its own.
@@ -68,6 +69,25 @@ export function Composer({
 		useUi.getState().consumeComposerInsert();
 		area.current?.focus();
 	}, [insert]);
+
+	// Drawings attached from the Canvas Sketchpad.
+	useEffect(() => {
+		if (!imageInsert) return;
+		if (chat?.agent === "codex") {
+			setImageHint("Codex takes text only — switch this chat to Claude or Antigravity to send sketches.");
+		} else if (slots.current < MAX_IMAGES) {
+			slots.current += 1;
+			setImages((previous) => [...previous, imageInsert.image]);
+			setImageHint(null);
+			if (imageInsert.caption) {
+				setDraft((previous) => combineDraft(previous, imageInsert.caption!, "append"));
+			}
+		} else {
+			setImageHint(`Up to ${MAX_IMAGES} images per message.`);
+		}
+		useUi.getState().consumeComposerImageInsert();
+		area.current?.focus();
+	}, [imageInsert, chat?.agent]);
 
 	// Grow with the text up to a third of the panel.
 	useEffect(() => {

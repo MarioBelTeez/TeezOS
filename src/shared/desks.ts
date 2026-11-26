@@ -8,9 +8,9 @@ import { DEFAULT_DOCK, type Dock, type DockArea } from "./dock.ts";
  * reorders desks by the same rules.
  */
 
-export type PanelKind = "editor" | "explorer" | "search" | "git" | "sessions" | "chat" | "terminal" | "brain" | "feed" | "agents" | "browser" | "server" | "automations";
+export type PanelKind = "editor" | "explorer" | "search" | "git" | "sessions" | "chat" | "terminal" | "brain" | "feed" | "agents" | "browser" | "canvas" | "server" | "automations";
 
-export const PANEL_KINDS: readonly PanelKind[] = ["editor", "explorer", "search", "git", "sessions", "chat", "terminal", "brain", "feed", "agents", "browser", "server", "automations"];
+export const PANEL_KINDS: readonly PanelKind[] = ["editor", "explorer", "search", "git", "sessions", "chat", "terminal", "brain", "feed", "agents", "browser", "canvas", "server", "automations"];
 
 export const isPanelKind = (value: unknown): value is PanelKind => typeof value === "string" && (PANEL_KINDS as readonly string[]).includes(value);
 
@@ -109,7 +109,7 @@ export type Placement =
 	| { readonly direction: "within" | "left" | "right" | "above" | "below"; readonly reference: PanelKind };
 
 const SIDE: readonly PanelKind[] = ["explorer", "search", "git", "sessions"];
-const CENTER: readonly PanelKind[] = ["editor", "brain", "feed", "agents", "browser", "server", "automations"];
+const CENTER: readonly PanelKind[] = ["editor", "brain", "feed", "agents", "browser", "canvas", "server", "automations"];
 
 export function placementFor(panel: PanelKind, has: (panel: PanelKind) => boolean): Placement | null {
 	const beside = (group: readonly PanelKind[]): Placement | null => {

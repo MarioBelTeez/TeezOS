@@ -112,6 +112,7 @@ function ChatBody({ chat, workspace }: { readonly chat: Chat; readonly workspace
 		};
 	}, []);
 	const approve = useChats((s) => s.approve);
+	const scrollToBottomReq = useUi((s) => s.chatScrollToBottom);
 
 	// Follow new output only while the reader is at the bottom; scrolling up
 	// to read something must not be yanked back down by the next delta.
@@ -123,8 +124,51 @@ function ChatBody({ chat, workspace }: { readonly chat: Chat; readonly workspace
 		if (!element) return;
 		stick.current = stickAfterChatChange(shownChat.current, chat.chatId, stick.current);
 		shownChat.current = chat.chatId;
-		if (stick.current) element.scrollTop = element.scrollHeight;
+		if (stick.current) {
+			element.scrollTop = element.scrollHeight;
+			lastTop.current = element.scrollTop;
+		}
 	}, [chat.cards, chat.chatId]);
+
+	// Clicking a desktop notification explicitly jumps to the newest reply,
+	// even if the same chat was already open or Chromium reset scrollTop while hidden.
+	useEffect(() => {
+		if (!scrollToBottomReq || scrollToBottomReq.chatId !== chat.chatId) return;
+		stick.current = true;
+		readerInputAt.current = null;
+		pointerHeld.current = false;
+		const pin = (): void => {
+			const el = scroller.current;
+			if (!el) return;
+			el.scrollTop = el.scrollHeight;
+			lastTop.current = el.scrollTop;
+		};
+		pin();
+		const raf1 = requestAnimationFrame(() => {
+			pin();
+			requestAnimationFrame(pin);
+		});
+		return () => cancelAnimationFrame(raf1);
+	}, [scrollToBottomReq, chat.chatId]);
+
+	// Returning from a minimized/hidden window must keep pinned chats at the bottom.
+	useEffect(() => {
+		const repinIfStuck = (): void => {
+			if (document.visibilityState === "hidden" || !stick.current) return;
+			requestAnimationFrame(() => {
+				const el = scroller.current;
+				if (!el || !stick.current) return;
+				el.scrollTop = el.scrollHeight;
+				lastTop.current = el.scrollTop;
+			});
+		};
+		document.addEventListener("visibilitychange", repinIfStuck);
+		window.addEventListener("focus", repinIfStuck);
+		return () => {
+			document.removeEventListener("visibilitychange", repinIfStuck);
+			window.removeEventListener("focus", repinIfStuck);
+		};
+	}, []);
 
 	// Images and long blocks settle after the cards render, and the panel
 	// itself can be shown (it had no height while hidden) or resized: keep
@@ -134,7 +178,10 @@ function ChatBody({ chat, workspace }: { readonly chat: Chat; readonly workspace
 		const element = scroller.current;
 		if (!content || !element) return;
 		const observer = new ResizeObserver(() => {
-			if (stick.current) element.scrollTop = element.scrollHeight;
+			if (stick.current) {
+				element.scrollTop = element.scrollHeight;
+				lastTop.current = element.scrollTop;
+			}
 		});
 		observer.observe(content);
 		observer.observe(element);

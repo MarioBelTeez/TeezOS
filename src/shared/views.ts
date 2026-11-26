@@ -1,7 +1,7 @@
 import type { ModuleId, Modules } from "./modules.ts";
 import type { PanelKind } from "./desks.ts";
 
-export const VIEW_IDS = ["code", "brain", "feed", "agents", "browser", "server", "automations"] as const;
+export const VIEW_IDS = ["code", "brain", "feed", "agents", "browser", "canvas", "server", "automations"] as const;
 export type ViewId = (typeof VIEW_IDS)[number];
 
 export const VIEW_MODULE: Readonly<Record<ViewId, ModuleId>> = {
@@ -10,6 +10,7 @@ export const VIEW_MODULE: Readonly<Record<ViewId, ModuleId>> = {
 	feed: "feed",
 	agents: "agents",
 	browser: "browser",
+	canvas: "canvas",
 	server: "server",
 	automations: "automations",
 };
@@ -36,6 +37,7 @@ export const PANEL_MODULE: Readonly<Record<PanelKind, ModuleId>> = {
 	feed: "feed",
 	agents: "agents",
 	browser: "browser",
+	canvas: "canvas",
 	server: "server",
 	automations: "automations",
 };

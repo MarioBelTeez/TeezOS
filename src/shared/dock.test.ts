@@ -21,7 +21,7 @@ describe("normalizeViews", () => {
 	test("order is a full permutation; Code cannot be hidden", () => {
 		expect(normalizeViews(undefined, undefined)).toEqual({ order: DEFAULT_VIEW_ORDER, hidden: [] });
 		expect(normalizeViews(["server", "code", "server", "x"], ["code", "brain", "brain", "y"])).toEqual({
-			order: ["server", "code", "brain", "feed", "agents", "browser", "automations"],
+			order: ["server", "code", "brain", "feed", "agents", "browser", "canvas", "automations"],
 			hidden: ["brain"],
 		});
 	});

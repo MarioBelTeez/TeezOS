@@ -1,7 +1,7 @@
 import { isBag, str, pick, clamp, clampFloat, bool } from "./normalize.ts";
 
-export type ModuleId = "chat" | "editor" | "terminal" | "brain" | "feed" | "browser" | "agents" | "server" | "automations";
-export const MODULE_IDS: readonly ModuleId[] = ["chat", "editor", "terminal", "brain", "feed", "browser", "agents", "server", "automations"];
+export type ModuleId = "chat" | "editor" | "terminal" | "brain" | "feed" | "browser" | "agents" | "canvas" | "server" | "automations";
+export const MODULE_IDS: readonly ModuleId[] = ["chat", "editor", "terminal", "brain", "feed", "browser", "agents", "canvas", "server", "automations"];
 export type TextSize = "s" | "m" | "l";
 export type LabelMode = "always" | "zoom" | "never";
 export type ShellChoice = "auto" | "powershell" | "gitbash" | "cmd";
@@ -14,6 +14,7 @@ export type Modules = {
 	readonly feed: { readonly enabled: boolean };
 	readonly browser: { readonly enabled: boolean; readonly home: string; readonly pins: readonly BrowserPin[] };
 	readonly agents: { readonly enabled: boolean };
+	readonly canvas: { readonly enabled: boolean };
 	readonly server: { readonly enabled: boolean };
 	readonly automations: { readonly enabled: boolean };
 };
@@ -26,6 +27,7 @@ export const DEFAULT_MODULES: Modules = {
 	feed: { enabled: true },
 	browser: { enabled: true, home: "https://duckduckgo.com", pins: [{ title: "BelTeez Mail", url: "https://privateemail.com" }] },
 	agents: { enabled: true },
+	canvas: { enabled: true },
 	server: { enabled: false },
 	automations: { enabled: false }
 };
@@ -57,6 +59,7 @@ export function normalizeModules(raw: unknown, legacyHiddenViews: readonly strin
 	const feed = isBag(b["feed"]) ? b["feed"] : {};
 	const browser = isBag(b["browser"]) ? b["browser"] : {};
 	const agents = isBag(b["agents"]) ? b["agents"] : {};
+	const canvas = isBag(b["canvas"]) ? b["canvas"] : {};
 	const server = isBag(b["server"]) ? b["server"] : {};
 	const automations = isBag(b["automations"]) ? b["automations"] : {};
 
@@ -117,6 +120,9 @@ export function normalizeModules(raw: unknown, legacyHiddenViews: readonly strin
 		},
 		agents: {
 			enabled: typeof agents["enabled"] === "boolean" ? agents["enabled"] : !legacyHiddenViews.includes("agents")
+		},
+		canvas: {
+			enabled: typeof canvas["enabled"] === "boolean" ? canvas["enabled"] : !legacyHiddenViews.includes("canvas")
 		},
 		server: {
 			enabled: typeof server["enabled"] === "boolean" ? server["enabled"] : DEFAULT_MODULES.server.enabled

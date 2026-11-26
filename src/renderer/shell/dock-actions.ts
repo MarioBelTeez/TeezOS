@@ -45,11 +45,12 @@ export const PANEL_LABEL: Readonly<Record<PanelKind, string>> = {
 	feed: "Feed the Brain",
 	agents: "Agents",
 	browser: "Browser",
+	canvas: "Canvas",
 	server: "Server",
 	automations: "Automations",
 };
 
-export const VIEW_PANEL: Readonly<Record<ViewId, PanelKind>> = { code: "editor", brain: "brain", feed: "feed", agents: "agents", browser: "browser", server: "server", automations: "automations" };
+export const VIEW_PANEL: Readonly<Record<ViewId, PanelKind>> = { code: "editor", brain: "brain", feed: "feed", agents: "agents", browser: "browser", canvas: "canvas", server: "server", automations: "automations" };
 
 /** What is on the open desk, for anything that draws state (the left bar, the status bar, menus). */
 type DeskState = {

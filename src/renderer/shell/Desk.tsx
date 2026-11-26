@@ -9,7 +9,7 @@ import {
 	type IWatermarkPanelProps,
 } from "dockview-react";
 import "dockview-react/dist/styles/dockview.css";
-import { Brain, FileCode2, Files, GitBranch, Globe, History, Maximize2, MessageSquare, Minimize2, Network, PictureInPicture2, Search, Server, Sparkles, TerminalSquare, Timer, X } from "lucide-react";
+import { Brain, FileCode2, Files, GitBranch, Globe, History, Maximize2, MessageSquare, Minimize2, Network, PenTool, PictureInPicture2, Search, Server, Sparkles, TerminalSquare, Timer, X } from "lucide-react";
 import type { Workspace } from "../../main/settings/store.ts";
 import { PANEL_KINDS, isPanelKind, type PanelKind } from "../../shared/desks.ts";
 import { useActiveWorkspace, useSettings } from "../state/settings.ts";
@@ -24,6 +24,7 @@ import { BrainView } from "../views/BrainView.tsx";
 import { FeedView } from "../views/FeedView.tsx";
 import { AgentsView } from "../views/AgentsView.tsx";
 import { BrowserView } from "../views/BrowserView.tsx";
+import { CanvasView } from "../views/CanvasView.tsx";
 import { ServerView } from "../views/ServerView.tsx";
 import { AutomationsView } from "../views/AutomationsView.tsx";
 import { PANEL_LABEL, attachDesk, revealPanel } from "./dock-actions.ts";
@@ -47,6 +48,7 @@ export const PANEL_ICON: Readonly<Record<PanelKind, typeof Files>> = {
 	feed: Sparkles,
 	agents: Network,
 	browser: Globe,
+	canvas: PenTool,
 	server: Server,
 	automations: Timer,
 };
@@ -93,6 +95,7 @@ const COMPONENTS: Readonly<Record<PanelKind, React.FunctionComponent<IDockviewPa
 	feed: whole(FeedView),
 	agents: whole(AgentsView),
 	browser: whole(BrowserView),
+	canvas: whole(CanvasView),
 	server: whole(ServerView),
 	automations: whole(AutomationsView),
 };

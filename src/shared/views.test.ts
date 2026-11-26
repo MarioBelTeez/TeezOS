@@ -4,11 +4,11 @@ import { PANEL_KINDS } from "./desks.ts";
 import { DEFAULT_MODULES, mergeModules } from "./modules.ts";
 import { normalizeViews } from "./dock.ts";
 
-test("all seven views, code first", () => {
-	expect(VIEW_IDS).toEqual(["code", "brain", "feed", "agents", "browser", "server", "automations"]);
+test("all eight views, code first", () => {
+	expect(VIEW_IDS).toEqual(["code", "brain", "feed", "agents", "browser", "canvas", "server", "automations"]);
 });
 test("disabled modules leave the bar; code always stays", () => {
-	expect(enabledViews([...VIEW_IDS], (m) => m !== "browser" && m !== "editor")).toEqual(["code", "brain", "feed", "agents", "server", "automations"]);
+	expect(enabledViews([...VIEW_IDS], (m) => m !== "browser" && m !== "editor")).toEqual(["code", "brain", "feed", "agents", "canvas", "server", "automations"]);
 });
 test("an old saved order gains the new views", () => {
 	const { order } = normalizeViews(["automations", "code", "brain", "server"], []);

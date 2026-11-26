@@ -164,11 +164,12 @@ function Shell(): React.JSX.Element {
 			const isVault = !!workspace && !!settings?.vaultPath && workspace.path.toLowerCase() === settings.vaultPath.toLowerCase();
 			if (isVault && change.dirs.length > 0 && useBrain.getState().index) void useBrain.getState().refresh();
 		});
-		// A click on a chat notification shows that chat in its workspace.
+		// A click on a chat notification shows that chat in its workspace, pinned to the newest reply.
 		const offFocus = window.teez.chat.onFocus(({ chatId, workspaceId }) => {
 			openWorkspace(workspaceId);
 			useChats.getState().activate(workspaceId, chatId);
 			revealPanel("chat");
+			useUi.getState().requestChatScrollToBottom(chatId);
 		});
 		// A click on a server notification opens the Server view.
 		const offServer = window.teez.server.onOpen(() => revealPanel("server"));
@@ -236,7 +237,7 @@ function Shell(): React.JSX.Element {
 			} else if (key === "escape" && ui.view === "settings" && !event.defaultPrevented) {
 				// An input in Settings that handled Escape (cancelling a rename) keeps Settings open.
 				ui.setView("desk");
-			} else if (ctrl && ["1", "2", "3", "4", "5", "6", "7"].includes(key)) {
+			} else if (ctrl && ["1", "2", "3", "4", "5", "6", "7", "8"].includes(key)) {
 				event.preventDefault();
 				// A view whose module is turned off is not shown (revealPanel refuses its panel too).
 				const target = VIEW_IDS[Number(key) - 1] ?? "code";
