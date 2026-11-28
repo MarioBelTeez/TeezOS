@@ -1,6 +1,6 @@
 {
   "name": "teezai",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "private": true,
   "description": "Desktop app where Claude Code runs: folder workspaces, chat with approvals, built-in terminal.",
   "type": "module",
