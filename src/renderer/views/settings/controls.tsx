@@ -78,7 +78,7 @@ export function Segmented({
 					aria-checked={value === option.id}
 					onClick={() => onChange(option.id)}
 					className={`px-3 py-1 font-condensed text-[12px] uppercase tracking-wider transition-colors ${
-						value === option.id ? "bg-red text-text shadow-[0_0_12px_var(--color-glow)]" : "text-muted hover:text-text"
+						value === option.id ? "bg-red text-on-red shadow-[0_0_12px_var(--color-glow)]" : "text-muted hover:text-text"
 					}`}
 				>
 					{option.label}

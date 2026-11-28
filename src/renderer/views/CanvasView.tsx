@@ -82,7 +82,7 @@ export function CanvasView(): React.JSX.Element {
 							type="button"
 							onClick={() => setTab("sketchpad")}
 							className={`flex items-center gap-1.5 px-2.5 py-1 font-condensed text-[11px] font-bold uppercase tracking-wider transition-colors ${
-								tab === "sketchpad" ? "bg-red text-white" : "text-muted hover:text-text"
+								tab === "sketchpad" ? "bg-red text-on-red" : "text-muted hover:text-text"
 							}`}
 						>
 							<PenTool size={12} />
@@ -92,7 +92,7 @@ export function CanvasView(): React.JSX.Element {
 							type="button"
 							onClick={() => setTab("viewer")}
 							className={`flex items-center gap-1.5 px-2.5 py-1 font-condensed text-[11px] font-bold uppercase tracking-wider transition-colors ${
-								tab === "viewer" ? "bg-red text-white" : "text-muted hover:text-text"
+								tab === "viewer" ? "bg-red text-on-red" : "text-muted hover:text-text"
 							}`}
 						>
 							<Eye size={12} />
@@ -438,7 +438,7 @@ function SketchpadPane(): React.JSX.Element {
 								title={t.label}
 								onClick={() => setTool(t.id)}
 								className={`flex items-center gap-1 px-2 py-1 font-condensed text-[11px] font-semibold uppercase tracking-wider transition-colors ${
-									tool === t.id ? "bg-red text-white" : "text-muted hover:bg-white/5 hover:text-text"
+									tool === t.id ? "bg-red text-on-red" : "text-muted hover:bg-white/5 hover:text-text"
 								}`}
 							>
 								<Icon size={13} />
@@ -601,7 +601,7 @@ function SketchpadPane(): React.JSX.Element {
 				<button
 					type="button"
 					onClick={() => void handleSendToChat()}
-					className="cut-corner flex items-center gap-1.5 bg-red px-4 py-1.5 font-condensed text-xs font-bold uppercase tracking-wider text-white hover:bg-red-hot"
+					className="cut-corner flex items-center gap-1.5 bg-red px-4 py-1.5 font-condensed text-xs font-bold uppercase tracking-wider text-on-red hover:bg-red-hot"
 				>
 					<Send size={13} />
 					Send to Chat
@@ -762,7 +762,7 @@ function ViewerPane(): React.JSX.Element {
 								key={k}
 								type="button"
 								onClick={() => setPasteKind(k)}
-								className={`px-2 py-0.5 font-mono text-[10px] uppercase ${pasteKind === k ? "bg-red text-white" : "border border-border text-muted"}`}
+								className={`px-2 py-0.5 font-mono text-[10px] uppercase ${pasteKind === k ? "bg-red text-on-red" : "border border-border text-muted"}`}
 							>
 								{k}
 							</button>
@@ -774,7 +774,7 @@ function ViewerPane(): React.JSX.Element {
 								openInCanvasViewer({ title: `Pasted ${pasteKind.toUpperCase()}`, kind: pasteKind, content: pasteText });
 								setPasteOpen(false);
 							}}
-							className="ml-auto bg-red px-3 py-1 font-condensed text-[11px] font-bold uppercase tracking-wider text-white"
+							className="ml-auto bg-red px-3 py-1 font-condensed text-[11px] font-bold uppercase tracking-wider text-on-red"
 						>
 							Render
 						</button>

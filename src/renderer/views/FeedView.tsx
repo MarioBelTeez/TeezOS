@@ -17,7 +17,7 @@ import { detectInput, type FeedItem, type FeedKind, type FeedStatus } from "../.
 import { ENGINE_LABEL } from "../../shared/feed-engine.ts";
 import { filterHistory, mergeHistory, type HistoryEntry } from "../../shared/feed-history.ts";
 import { Meter, useNow as useMinuteClock } from "../chat/UsageRails.tsx";
-import { limitRows, weeklyWarning } from "../chat/usage-rails.ts";
+import { limitRows } from "../chat/usage-rails.ts";
 import { useFeed } from "../state/feed.ts";
 import { useUsage } from "../state/usage.ts";
 import { useSettings } from "../state/settings.ts";
@@ -185,12 +185,11 @@ function SkillReviewDialog(): React.JSX.Element | null {
 	);
 }
 
-/** The engine in use; Claude's 5-hour bar (and weekly warning) when it is Claude, else the last quota error. */
+/** The engine in use; Claude's 5-hour and weekly bars when it is Claude, else the last quota error. */
 function EngineBar(): React.JSX.Element | null {
 	const status = useFeed((s) => s.engine);
 	const usage = useUsage((s) => s.usage);
 	const rows = useMemo(() => (usage ? limitRows(usage) : []), [usage]);
-	const weekly = useMemo(() => (usage ? weeklyWarning(usage, "claude", "") : null), [usage]);
 	const now = useMinuteClock(usage !== null);
 	if (!status) return null;
 	const claude = status.engine === "claude";
@@ -207,7 +206,6 @@ function EngineBar(): React.JSX.Element | null {
 					{rows.map((r) => (
 						<Meter key={r.label} label={r.label} window={r.window} now={now} size={r.size} />
 					))}
-					{weekly ? <p className="mt-1 truncate font-mono text-[10.5px] text-amber">{weekly}</p> : null}
 				</div>
 			) : null}
 			{claude && rows.length === 0 ? <p className="font-mono text-[11px] text-muted">Claude's plan usage shows here once a Claude chat is open.</p> : null}
@@ -359,7 +357,7 @@ function Composer(): React.JSX.Element {
 							role="radio"
 							aria-checked={kind === k.id}
 							onClick={() => setKind(k.id)}
-							className={`px-3 py-1 font-condensed text-xs uppercase tracking-wider ${kind === k.id ? "bg-red text-text" : "text-muted hover:text-text"}`}
+							className={`px-3 py-1 font-condensed text-xs uppercase tracking-wider ${kind === k.id ? "bg-red text-on-red" : "text-muted hover:text-text"}`}
 						>
 							{k.label}
 						</button>

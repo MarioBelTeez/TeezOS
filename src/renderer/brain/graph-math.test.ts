@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { approach, folderColor, graphLabelAlpha, inertiaStep, labelAlpha, nodeRadius, zoomAround } from "./graph-math.ts";
+import { approach, DEFAULT_GRAPH_ACCENT, FOLDER_COLORS, folderColor, graphLabelAlpha, inertiaStep, labelAlpha, nodeRadius, rgba, themedNodeColor, zoomAround } from "./graph-math.ts";
 
 describe("graphLabelAlpha", () => {
 	const plain = { hovered: false, neighbour: false, current: false, compact: false, k: 1, mode: "zoom" as const, nodeAlpha: 1 };
@@ -60,5 +60,20 @@ describe("graph maths", () => {
 		expect(worldAfter.x).toBeCloseTo(worldBefore.x);
 		expect(worldAfter.y).toBeCloseTo(worldBefore.y);
 		expect(zoomAround(view, cursor, 50).k).toBe(6);
+	});
+});
+
+describe("graph theming", () => {
+	const nord = { red: "#88c0d0", hot: "#a3d4e2", redRgb: "136 192 208", text: "#eceff4" };
+
+	test("brain and work follow the theme's accent; other folders keep their category colour", () => {
+		expect(themedNodeColor(FOLDER_COLORS["brain"] as string, nord)).toBe("#a3d4e2");
+		expect(themedNodeColor(FOLDER_COLORS["work"] as string, nord)).toBe("#88c0d0");
+		expect(themedNodeColor(FOLDER_COLORS["org"] as string, nord)).toBe(FOLDER_COLORS["org"]);
+	});
+
+	test("the default accent leaves the crimson graph exactly as it was", () => {
+		expect(themedNodeColor(FOLDER_COLORS["work"] as string, DEFAULT_GRAPH_ACCENT)).toBe("#e8002d");
+		expect(rgba(DEFAULT_GRAPH_ACCENT.redRgb, 0.7)).toBe("rgba(232,0,45,0.7)");
 	});
 });

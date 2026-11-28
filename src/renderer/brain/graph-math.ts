@@ -24,6 +24,26 @@ export function folderColor(path: string): string {
 	return FOLDER_COLORS["other"] ?? "#b8a9b0";
 }
 
+/** The theme's accent pair, as the canvas needs literal colours rather than CSS variables. */
+export type GraphAccent = { readonly red: string; readonly hot: string; readonly redRgb: string; readonly text: string };
+
+export const DEFAULT_GRAPH_ACCENT: GraphAccent = { red: "#e8002d", hot: "#ff1744", redRgb: "232 0 45", text: "#f5f0f2" };
+
+/**
+ * A node's colour under the current theme: the two accent folders (brain, work)
+ * follow the theme; the other folders are categories and keep their own hues.
+ */
+export function themedNodeColor(color: string, accent: GraphAccent): string {
+	if (color === FOLDER_COLORS["brain"]) return accent.hot;
+	if (color === FOLDER_COLORS["work"]) return accent.red;
+	return color;
+}
+
+/** "232 0 45" + 0.7 → "rgba(232,0,45,0.7)". */
+export function rgba(rgbTriplet: string, alpha: number): string {
+	return `rgba(${rgbTriplet.trim().split(/\s+/).join(",")},${alpha})`;
+}
+
 export function labelAlpha(k: number, mode: LabelMode): number {
 	if (mode === "never") return 0;
 	if (mode === "always") return 1;

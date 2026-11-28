@@ -17,6 +17,8 @@ export type ListedModel = { readonly id: string; readonly label: string };
 export const CLAUDE_CHOICES: readonly ModelChoice[] = [
 	{ id: "opus", label: "Opus 5.5", agent: "claude" },
 	{ id: "sonnet", label: "Sonnet 5.5", agent: "claude" },
+	{ id: "haiku", label: "Haiku", agent: "claude" },
+	{ id: "fable", label: "Fable", agent: "claude" },
 ];
 
 const LEVEL_SUFFIX = /-(?:low|medium|high|xhigh|thinking)$/;

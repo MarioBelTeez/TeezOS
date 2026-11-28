@@ -9,6 +9,7 @@ import { isBag, str, pick, clamp, bool, type Bag } from "../../shared/normalize.
 import { DEFAULT_MODULES, normalizeModules, type Modules } from "../../shared/modules.ts";
 import { normalizePresets, type Preset } from "../../shared/presets.ts";
 import { VIEW_MODULE } from "../../shared/views.ts";
+import { DEFAULT_THEME_ID, THEME_IDS, type ThemeId } from "../../shared/themes.ts";
 
 /**
  * Everything TeezAI remembers between runs, in one JSON file in `userData`.
@@ -78,6 +79,8 @@ export type LayoutSettings = {
 	readonly activeDeskId: string;
 	/** Panels stay where they are: no dragging tabs or groups. */
 	readonly locked: boolean;
+	/** The colour theme (src/shared/themes.ts); BelTeez Crimson unless picked. */
+	readonly theme: ThemeId;
 };
 
 export type ProxmoxSettings = {
@@ -146,6 +149,7 @@ export const DEFAULT_SETTINGS: Settings = {
 		desks: [{ id: "desk-1", name: "", workspaceId: "", grid: null }],
 		activeDeskId: "desk-1",
 		locked: false,
+		theme: DEFAULT_THEME_ID,
 	},
 	modules: DEFAULT_MODULES,
 	presets: [],
@@ -248,6 +252,7 @@ export function normalizeSettings(raw: unknown): Settings {
 			hiddenViews: isBag(raw["modules"]) ? views.hidden : views.hidden.filter((v) => VIEW_MODULE[v] === "editor"),
 			...normalizeDesks(layout["desks"], layout["activeDeskId"], workspaces.map((w) => w.id), activeWorkspaceId),
 			locked: bool(layout["locked"], d.layout.locked),
+			theme: pick(layout["theme"], THEME_IDS, d.layout.theme),
 		},
 		modules: normalizeModules(raw["modules"], views.hidden),
 		presets: normalizePresets(raw["presets"]),

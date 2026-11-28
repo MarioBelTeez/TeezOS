@@ -267,7 +267,7 @@ function ReaderBar(): React.JSX.Element {
 				type="button"
 				onClick={() => setMode(mode === "graph" ? "note" : "graph")}
 				className={`ml-1 flex h-6 items-center gap-1.5 px-2 font-condensed text-[11px] font-semibold uppercase tracking-wider ring-1 ${
-					mode === "graph" ? "bg-red text-text ring-red" : "text-muted ring-border hover:text-text"
+					mode === "graph" ? "bg-red text-on-red ring-red" : "text-muted ring-border hover:text-text"
 				}`}
 			>
 				<Network size={12} /> Graph

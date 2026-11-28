@@ -288,7 +288,7 @@ export function Composer({
 									slots.current -= 1;
 									setImages((previous) => previous.filter((_, i) => i !== index));
 								}}
-								className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center bg-red text-white opacity-0 group-hover:opacity-100"
+								className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center bg-red text-on-red opacity-0 group-hover:opacity-100"
 							>
 								<X size={10} />
 							</button>
@@ -298,7 +298,7 @@ export function Composer({
 				</div>
 			) : null}
 			<div
-				className="flex flex-col bg-surface-2/80 shadow-[0_0_28px_rgb(232_0_45/0.14)] ring-1 ring-red/45 transition-shadow focus-within:glow"
+				className="flex flex-col bg-surface-2/80 shadow-[0_0_28px_rgb(var(--color-red-rgb)/0.14)] ring-1 ring-red/45 transition-shadow focus-within:glow"
 				onDragOver={(event) => {
 					if (event.dataTransfer.types.includes("Files")) event.preventDefault();
 				}}

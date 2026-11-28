@@ -3,7 +3,7 @@ import { planModelSwitch } from "./model-switch.ts";
 import { modelChoices } from "../../shared/models.ts";
 import type { Card } from "./reduce.ts";
 
-const [opus, sonnet, pro, flash] = modelChoices([
+const [opus, sonnet, , , pro, flash] = modelChoices([
 	{ id: "gemini-3.1-pro-high", label: "Gemini 3.1 Pro (High)" },
 	{ id: "gemini-3.8-flash-medium", label: "Gemini 3.8 Flash (Medium)" },
 ]);

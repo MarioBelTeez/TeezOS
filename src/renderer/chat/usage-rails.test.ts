@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { RAIL_MAX_WIDTH, RAIL_MIN_SPACE, agyLimitRows, barTone, contextSummary, formatPct, formatResetsIn, formatTokens, limitRows, railLayout, weeklyShare, weeklyWarning } from "./usage-rails.ts";
+import { RAIL_MAX_WIDTH, RAIL_MIN_SPACE, agyLimitRows, barTone, contextSummary, formatPct, formatResetsIn, formatTokens, limitRows, railLayout, weeklyShare } from "./usage-rails.ts";
 import type { AgyUsage, ClaudeUsage } from "../../shared/usage.ts";
 
 const MIN = 60_000;
@@ -109,40 +109,25 @@ describe("limitRows", () => {
 		weeklySonnet: null,
 		models: [],
 	};
-	test("only the 5-hour bar; the week appears as a warning instead", () => {
-		expect(limitRows(base).map((r) => r.label)).toEqual(["5-hour"]);
+	test("5-hour and the week as full bars, then this chat's model share as a thin one", () => {
+		expect(limitRows(base, "claude", "opus").map((r) => [r.label, r.size])).toEqual([
+			["5-hour", "main"],
+			["Weekly", "main"],
+			["Opus wk", "share"],
+		]);
 	});
-	test("no bar without a 5-hour window", () => {
-		expect(limitRows({ ...base, fiveHour: null })).toEqual([]);
+	test("with no chat in view (e.g. the Feed bar) the default model, Opus, gives the share", () => {
+		expect(limitRows(base).map((r) => r.label)).toEqual(["5-hour", "Weekly", "Opus wk"]);
 	});
-});
-
-describe("weeklyWarning", () => {
-	const usage = (over: Partial<ClaudeUsage> = {}): ClaudeUsage => ({
-		fiveHour: { pct: 10, resetsAt: null },
-		weekly: { pct: 20, resetsAt: null },
-		weeklyOpus: { pct: 30, resetsAt: null },
-		weeklySonnet: { pct: 5, resetsAt: null },
-		models: [],
-		...over,
+	test("the share follows the chat's model and is left out when that model reports none", () => {
+		expect(limitRows(base, "claude", "sonnet").map((r) => r.label)).toEqual(["5-hour", "Weekly"]);
 	});
-	test("silent below 75 percent", () => {
-		expect(weeklyWarning(usage({ weekly: { pct: 74.4, resetsAt: null } }), "claude", "opus")).toBeNull();
+	test("a Gemini chat sees Claude's 5-hour and week, but no Claude model share", () => {
+		expect(limitRows(base, "agy", "gemini-3.8-flash-high").map((r) => r.label)).toEqual(["5-hour", "Weekly"]);
 	});
-	test("warns from 75 percent on the overall week", () => {
-		expect(weeklyWarning(usage({ weekly: { pct: 75, resetsAt: null } }), "claude", "sonnet")).toBe("Weekly limit at 75%");
-	});
-	test("takes the higher of the week and this model's share", () => {
-		expect(weeklyWarning(usage({ weekly: { pct: 40, resetsAt: null }, weeklyOpus: { pct: 81.2, resetsAt: null } }), "claude", "opus")).toBe("Weekly limit at 81%");
-	});
-	test("another model's share does not count", () => {
-		expect(weeklyWarning(usage({ weeklyOpus: { pct: 95, resetsAt: null } }), "claude", "sonnet")).toBeNull();
-	});
-	test("a Gemini chat still sees the overall week", () => {
-		expect(weeklyWarning(usage({ weekly: { pct: 90, resetsAt: null } }), "agy", "gemini")).toBe("Weekly limit at 90%");
-	});
-	test("nothing when no weekly window is reported", () => {
-		expect(weeklyWarning(usage({ weekly: null, weeklyOpus: null }), "claude", "opus")).toBeNull();
+	test("each bar appears only when its window is reported", () => {
+		expect(limitRows({ ...base, fiveHour: null }).map((r) => r.label)).toEqual(["Weekly", "Opus wk"]);
+		expect(limitRows({ ...base, weekly: null, weeklyOpus: null })).toEqual([{ label: "5-hour", window: base.fiveHour, size: "main" }]);
 	});
 });
 

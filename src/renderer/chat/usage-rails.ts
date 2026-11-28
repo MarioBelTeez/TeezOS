@@ -2,8 +2,8 @@ import type { AgentKind } from "../../main/agents/registry.ts";
 import type { AgyUsage, ClaudeUsage, UsageWindow } from "../../shared/usage.ts";
 
 /**
- * The rails either side of the composer: Claude's 5-hour limit on the left,
- * the week on the right. Only the pure parts live here, so they can be tested:
+ * The rails either side of the composer: plan limits on the left (5-hour,
+ * week, model share), this chat's context on the right. Only the pure parts live here, so they can be tested:
  * whether there is room, how a reset time reads, which colour a bar takes.
  */
 
@@ -72,9 +72,19 @@ export function weeklyShare(usage: ClaudeUsage, agent: AgentKind, model: string)
 
 export type LimitRow = { readonly label: string; readonly window: UsageWindow; readonly size: "main" | "share" };
 
-/** The left rail shows the 5-hour bar only; the week is a warning line (see `weeklyWarning`). */
-export function limitRows(usage: ClaudeUsage): readonly LimitRow[] {
-	return usage.fiveHour ? [{ label: "5-hour", window: usage.fiveHour, size: "main" }] : [];
+/**
+ * Claude's plan limits for the left rail: the 5-hour and weekly windows as full
+ * bars, then this chat's model share of the week as a thin one. The rail
+ * scrolls, so all of them fit however short the window is. Each bar appears
+ * only when the plan reports its window.
+ */
+export function limitRows(usage: ClaudeUsage, agent: AgentKind = "claude", model = ""): readonly LimitRow[] {
+	const rows: LimitRow[] = [];
+	if (usage.fiveHour) rows.push({ label: "5-hour", window: usage.fiveHour, size: "main" });
+	if (usage.weekly) rows.push({ label: "Weekly", window: usage.weekly, size: "main" });
+	const share = weeklyShare(usage, agent, model);
+	if (share) rows.push({ label: `${share.label} wk`, window: share.window, size: "share" });
+	return rows;
 }
 
 /**
@@ -105,21 +115,6 @@ export function agyLimitRows(usage: AgyUsage, model: string): readonly LimitRow[
 		if (window) rows.push({ label, window, size: "main" });
 	}
 	return rows;
-}
-
-/** The weekly limit speaks up from this share. */
-export const WEEKLY_WARN_FROM_PCT = 75;
-
-/**
- * "Weekly limit at 81%" once the week, or this chat's model's share of it
- * (whichever is higher), reaches 75 %; null below that or when none is reported.
- */
-export function weeklyWarning(usage: ClaudeUsage, agent: AgentKind, model: string): string | null {
-	const share = weeklyShare(usage, agent, model);
-	const pcts = [usage.weekly?.pct, share?.window.pct].filter((p): p is number => p !== undefined);
-	if (pcts.length === 0) return null;
-	const highest = Math.max(...pcts);
-	return highest >= WEEKLY_WARN_FROM_PCT ? `Weekly limit at ${formatPct(highest)}` : null;
 }
 
 /** Compact appears from this share of the context window. */

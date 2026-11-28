@@ -70,12 +70,17 @@ describe("captureConfig", () => {
 	it("reads folder, widths, quit and view", () => {
 		expect(
 			captureConfig({ TEEZAI_CAPTURE: "C:/qa", TEEZAI_CAPTURE_WIDTHS: "1920", TEEZAI_CAPTURE_QUIT: "1", TEEZAI_CAPTURE_VIEW: "feed" }, false),
-		).toEqual({ folder: "C:/qa", widths: [1920], quit: true, view: "feed" });
+		).toEqual({ folder: "C:/qa", widths: [1920], quit: true, view: "feed", theme: null });
 		expect(captureConfig({ TEEZAI_CAPTURE: "C:/qa", TEEZAI_CAPTURE_QUIT: "yes" }, false)).toEqual({
 			folder: "C:/qa",
 			widths: [1440, 2560],
 			quit: false,
 			view: null,
+			theme: null,
 		});
+	});
+	it("a theme to photograph in, only when it is a known theme", () => {
+		expect(captureConfig({ TEEZAI_CAPTURE: "C:/qa", TEEZAI_CAPTURE_THEME: "nord-frost" }, false)?.theme).toBe("nord-frost");
+		expect(captureConfig({ TEEZAI_CAPTURE: "C:/qa", TEEZAI_CAPTURE_THEME: "pink" }, false)?.theme).toBeNull();
 	});
 });

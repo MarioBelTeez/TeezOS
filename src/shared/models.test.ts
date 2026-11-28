@@ -33,10 +33,12 @@ const WITH_ARGON = [
 const ids = (list: readonly { id: string }[]): string[] => list.map((m) => m.id);
 
 describe("CLAUDE_CHOICES", () => {
-	test("Opus then Sonnet, fixed aliases", () => {
+	test("Opus, Sonnet, Haiku then Fable, fixed aliases", () => {
 		expect(CLAUDE_CHOICES.map((c) => [c.id, c.label, c.agent])).toEqual([
 			["opus", "Opus 5.5", "claude"],
 			["sonnet", "Sonnet 5.5", "claude"],
+			["haiku", "Haiku", "claude"],
+			["fable", "Fable", "claude"],
 		]);
 	});
 });
@@ -134,7 +136,7 @@ describe("geminiChoices", () => {
 
 describe("modelChoices", () => {
 	test("Claude first, then Gemini and Claude as Antigravity lists them", () => {
-		expect(ids(modelChoices(WITH_ARGON))).toEqual(["opus", "sonnet", "gemini-argon-4", "gemini-3.8-flash", "claude-sonnet-4-6", "claude-opus-4-6"]);
+		expect(ids(modelChoices(WITH_ARGON))).toEqual(["opus", "sonnet", "haiku", "fable", "gemini-argon-4", "gemini-3.8-flash", "claude-sonnet-4-6", "claude-opus-4-6"]);
 	});
 });
 
@@ -205,7 +207,7 @@ describe("choiceOf", () => {
 
 describe("modelForChoice", () => {
 	test("claude ids pass through, agy ids get the effort from the live list", () => {
-		const [opus, , argon] = modelChoices(WITH_ARGON);
+		const [opus, , , , argon] = modelChoices(WITH_ARGON);
 		expect(modelForChoice(opus!, "high", [])).toBe("opus");
 		expect(modelForChoice(argon!, "low", ids(WITH_ARGON))).toBe("gemini-argon-4-low");
 		expect(modelForChoice(argon!, "low", [])).toBeNull();

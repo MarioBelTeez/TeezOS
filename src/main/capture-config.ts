@@ -1,4 +1,5 @@
 import { VIEW_IDS, type ViewId } from "../shared/views.ts";
+import { isThemeId, type ThemeId } from "../shared/themes.ts";
 
 /**
  * Dev-only window capture, read from the environment: where the PNGs go, at
@@ -9,6 +10,7 @@ import { VIEW_IDS, type ViewId } from "../shared/views.ts";
  *   TEEZAI_CAPTURE_WIDTHS=1440,2560 content widths (height is 16:9)
  *   TEEZAI_CAPTURE_QUIT=1           quit once the PNGs are written
  *   TEEZAI_CAPTURE_VIEW=brain       a ViewId, "settings", "settings:<page>", "brain:graph" or "chat" to show first
+ *   TEEZAI_CAPTURE_THEME=nord-frost a theme id to photograph in (the capture profile only)
  */
 
 export const DEFAULT_CAPTURE_WIDTHS: readonly number[] = [1440, 2560];
@@ -24,6 +26,7 @@ export type CaptureConfig = {
 	readonly widths: readonly number[];
 	readonly quit: boolean;
 	readonly view: CaptureView | null;
+	readonly theme: ThemeId | null;
 };
 
 /** "1440, 2560" → [1440, 2560]; bad entries are dropped, duplicates once; nothing valid → the defaults. */
@@ -65,5 +68,6 @@ export function captureConfig(env: Readonly<Record<string, string | undefined>>,
 		widths: parseCaptureWidths(env["TEEZAI_CAPTURE_WIDTHS"]),
 		quit: env["TEEZAI_CAPTURE_QUIT"] === "1",
 		view: parseCaptureView(env["TEEZAI_CAPTURE_VIEW"]),
+		theme: isThemeId(env["TEEZAI_CAPTURE_THEME"]?.trim()) ? (env["TEEZAI_CAPTURE_THEME"]?.trim() as ThemeId) : null,
 	};
 }

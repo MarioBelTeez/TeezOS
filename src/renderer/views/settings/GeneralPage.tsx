@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { useSettings } from "../../state/settings.ts";
 import { useUi } from "../../state/ui.ts";
+import { DEFAULT_THEME_ID } from "../../../shared/themes.ts";
 import { Button, Row, Section, Toggle } from "./controls.tsx";
+import { ThemePicker } from "./ThemePicker.tsx";
 
-/** How TeezAI behaves as an app: notifications, starting with Windows, and first-run setup/tutorial. */
+/** How TeezAI looks and behaves as an app: theme, notifications, starting with Windows, and first-run setup/tutorial. */
 export function GeneralPage(): React.JSX.Element | null {
 	const notify = useSettings((s) => s.settings?.agent.notify ?? true);
 	const setAgent = useSettings((s) => s.setAgent);
+	const theme = useSettings((s) => s.settings?.layout.theme ?? DEFAULT_THEME_ID);
+	const setLayout = useSettings((s) => s.setLayout);
 	const [atLogin, setAtLogin] = useState<boolean | null>(null);
 
 	useEffect(() => {
@@ -14,6 +18,10 @@ export function GeneralPage(): React.JSX.Element | null {
 	}, []);
 
 	return (
+		<>
+		<Section title="Appearance">
+			<ThemePicker value={theme} onChange={(id) => setLayout({ theme: id })} />
+		</Section>
 		<Section title="App">
 			<Row
 				label="Notifications"
@@ -42,5 +50,6 @@ export function GeneralPage(): React.JSX.Element | null {
 				</Button>
 			</Row>
 		</Section>
+		</>
 	);
 }

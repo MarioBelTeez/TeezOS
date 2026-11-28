@@ -29,6 +29,7 @@ import { VIEW_IDS, VIEW_MODULE } from "../shared/views.ts";
 import { isModuleEnabled } from "../shared/modules.ts";
 import { isSettingsPage } from "./views/settings/nav.ts";
 import { wireBrowser } from "./browser/open.ts";
+import { applyTheme } from "./theme.ts";
 
 declare global {
 	interface Window {
@@ -107,7 +108,13 @@ function Shell(): React.JSX.Element {
 	const view = useUi((s) => s.view);
 	const dialog = useUi((s) => s.dialog);
 	const onboardingCompleted = useSettings((s) => s.settings?.onboardingCompleted);
+	const theme = useSettings((s) => s.settings?.layout.theme);
 	const [claude, setClaude] = useState<ClaudeStatus | null>(null);
+
+	// Before settings load the index.css defaults (BelTeez Crimson) show, which is also the default theme.
+	useEffect(() => {
+		if (theme) applyTheme(theme);
+	}, [theme]);
 
 	useEffect(() => {
 		if (onboardingCompleted === false && useUi.getState().dialog === null) {

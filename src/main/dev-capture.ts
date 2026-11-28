@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { app, nativeImage, WebContentsView, type BrowserWindow, type NativeImage } from "electron";
@@ -37,7 +37,19 @@ export function prepareCaptureProfile(): void {
 		const source = join(real, name);
 		if (existsSync(source)) cpSync(source, join(profile, name), { recursive: true, force: true });
 	}
+	if (config.theme) setCopiedTheme(join(profile, "settings.json"), config.theme);
 	app.setPath("userData", profile);
+}
+
+/** Photograph a theme without picking it in the real app: only the temp copy changes. */
+function setCopiedTheme(file: string, theme: string): void {
+	try {
+		const settings = existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>) : {};
+		const layout = typeof settings["layout"] === "object" && settings["layout"] !== null ? settings["layout"] : {};
+		writeFileSync(file, JSON.stringify({ ...settings, layout: { ...layout, theme } }, null, "\t"));
+	} catch (error) {
+		console.log(`[capture] could not set the theme: ${String(error)}`);
+	}
 }
 
 const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));

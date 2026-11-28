@@ -13,12 +13,16 @@ import type { NoteMeta, VaultIndex } from "../../main/brain/vault.ts";
 import type { LabelMode } from "../../shared/modules.ts";
 import {
 	approach,
+	DEFAULT_GRAPH_ACCENT,
 	FOLDER_COLORS,
 	folderColor,
 	graphLabelAlpha,
 	inertiaStep,
 	nodeRadius,
+	rgba,
+	themedNodeColor,
 	zoomAround,
+	type GraphAccent,
 } from "./graph-math.ts";
 
 /**
@@ -56,6 +60,18 @@ type GraphNode = SimulationNodeDatum & {
 type GraphLink = SimulationLinkDatum<GraphNode>;
 
 const OTHER_COLOR = FOLDER_COLORS["other"] ?? "#b8a9b0";
+
+/** The theme's colours, read live so switching theme recolours the next frame. */
+function readGraphAccent(): GraphAccent {
+	const style = getComputedStyle(document.documentElement);
+	const read = (name: string, fallback: string): string => style.getPropertyValue(name).trim() || fallback;
+	return {
+		red: read("--color-red", DEFAULT_GRAPH_ACCENT.red),
+		hot: read("--color-red-hot", DEFAULT_GRAPH_ACCENT.hot),
+		redRgb: read("--color-red-rgb", DEFAULT_GRAPH_ACCENT.redRgb),
+		text: read("--color-text", DEFAULT_GRAPH_ACCENT.text),
+	};
+}
 
 /** Pointer travel (px) before a press becomes a drag instead of a click. */
 const DRAG_SLOP = 3;
@@ -241,6 +257,7 @@ export function Graph({
 			context.scale(view.k, view.k);
 
 			const lit = hovered ? neighbours.get(hovered.id) : null;
+			const accent = readGraphAccent();
 
 			// Links
 			context.lineWidth = 1 / view.k;
@@ -260,7 +277,7 @@ export function Graph({
 
 			if (hovered !== null) {
 				context.lineWidth = 1.5 / view.k;
-				context.strokeStyle = "rgba(232,0,45,0.7)";
+				context.strokeStyle = rgba(accent.redRgb, 0.7);
 				context.beginPath();
 				for (const link of links) {
 					const s = typeof link.source === "object" && link.source !== null ? link.source : null;
@@ -277,7 +294,7 @@ export function Graph({
 			// Nodes
 			for (const node of nodes) {
 				context.globalAlpha = nodeAlphas.get(node.id) ?? 1;
-				context.fillStyle = node.color;
+				context.fillStyle = themedNodeColor(node.color, accent);
 				context.beginPath();
 				context.arc(node.x ?? 0, node.y ?? 0, node.radius, 0, Math.PI * 2);
 				context.fill();
@@ -285,8 +302,8 @@ export function Graph({
 				if (node.id === currentRef.current || node.id === focus) {
 					context.save();
 					context.globalAlpha = 1;
-					context.strokeStyle = "#ff1744";
-					context.shadowColor = "#ff1744";
+					context.strokeStyle = accent.hot;
+					context.shadowColor = accent.hot;
 					context.shadowBlur = 12;
 					context.lineWidth = 2 / view.k;
 					context.stroke();

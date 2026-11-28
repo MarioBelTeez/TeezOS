@@ -342,7 +342,7 @@ export function OnboardingModal({
 										>
 											<div
 												className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center border ${
-													selected ? "border-red-hot bg-red text-white" : "border-border bg-bg text-muted"
+													selected ? "border-red-hot bg-red text-on-red" : "border-border bg-bg text-muted"
 												}`}
 											>
 												<Icon size={16} />

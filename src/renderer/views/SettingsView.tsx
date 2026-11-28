@@ -45,7 +45,7 @@ export function SettingsView(): React.JSX.Element {
 		<div className="flex min-h-0 flex-1">
 			<nav aria-label="Settings sections" className="glass flex w-56 shrink-0 flex-col overflow-y-auto border-r border-border px-3 py-6">
 				<p className="glow-text px-2 font-condensed text-xs uppercase tracking-[0.3em] text-red-hot">TeezOS</p>
-				<h1 className="mb-4 px-2 font-display text-4xl tracking-wide [text-shadow:0_0_28px_rgb(232_0_45/0.25)]">SETTINGS</h1>
+				<h1 className="mb-4 px-2 font-display text-4xl tracking-wide [text-shadow:0_0_28px_rgb(var(--color-red-rgb)/0.25)]">SETTINGS</h1>
 				{SETTINGS_PAGES.map((id) => {
 					const active = id === page;
 					const module = PAGE_MODULE[id];
